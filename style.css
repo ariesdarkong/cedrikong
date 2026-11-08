@@ -717,12 +717,12 @@ main {
     align-self: stretch;
     justify-content: flex-start;
     align-items: flex-start;
-    padding-top: 10px;
+    padding-top: 50px;
 }
 
 #page-notes .section-head {
     margin-top: 0;
-    margin-bottom: 20px;
+    margin-bottom: 50px;
 }
 
 #page-notes .notes-toolbar {

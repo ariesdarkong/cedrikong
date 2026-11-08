@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WorkDesk — Personal SaaS Dashboard</title>
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="workdesk-notes.css">
+</head>
+<body>
+<div class="app">
+<aside class="sidebar">
+  <div class="logo"><span class="logo-icon">W</span><span id="brandName">WorkDesk</span></div>
+<nav class="nav">
+    <button class="active" data-page="dashboard">▦ Dashboard</button>
+    <button data-page="links">↗ Quick Links</button>
+    <button data-page="cards">▤ Work Cards</button>
+    <button data-page="notes">📝 Notes</button>
+    <button data-page="settings">⚙ Settings & Backup</button>
+</nav>
+  <div class="side-note"><strong>Local-first workspace</strong><br><br>Your links and cards are saved automatically in this browser using local storage. Export backups regularly.</div>
+</aside>
+<main>
+  <div class="topbar">
+    <div><h1 id="welcomeTitle">Good day, welcome back.</h1><div class="sub">Your personal workspace, organized in one place.</div></div>
+    <div class="top-actions"><button onclick="openLinkModal()">＋ Add link</button><button class="primary" onclick="openCardModal()">＋ New work card</button></div>
+  </div>
+
+  <section class="page active" id="page-dashboard">
+    <div class="stats">
+      <div class="stat-card"><div class="stat-label">Quick links</div><div class="stat-value" id="linkCount">0</div></div>
+      <div class="stat-card"><div class="stat-label">Saved work cards</div><div class="stat-value" id="cardCount">0</div></div>
+      <div class="stat-card"><div class="stat-label">Storage</div><div class="stat-value" style="font-size:19px">Auto-save <span style="color:#5eead4">●</span></div></div>
+    </div>
+    <div class="section-head"><div><h2>Quick links</h2><p>Click a link to open it in a new browser tab.</p></div><button onclick="openLinkModal()">＋ Add link</button></div>
+    <div class="grid" id="dashboardLinks"></div>
+    <div class="section-head"><div><h2>Recent work cards</h2><p>Notes, merchant details, procedures, and other work information.</p></div><button onclick="openCardModal()">＋ Create card</button></div>
+    <div class="info-grid" id="dashboardCards"></div>
+  </section>
+
+  <section class="page" id="page-links">
+    <div class="section-head"><div><h2>Quick links</h2><p>Modify, delete, or add as many shortcuts as you need.</p></div><button class="primary" onclick="openLinkModal()">＋ Add link</button></div>
+    <div class="toolbar"><input id="linkSearch" placeholder="Search links…" oninput="renderLinks()" style="margin: 5px;"></div>
+    <div class="grid" id="allLinks" style="margin-top:14px"></div>
+  </section>
+
+  <section class="page" id="page-cards">
+    <div class="section-head"><div><h2>Work cards</h2><p>Keep reusable notes, merchant details, SOPs, and snippets.</p></div><button class="primary" onclick="openCardModal()">＋ New card</button></div>
+    <div class="toolbar"><input id="cardSearch" placeholder="Search cards…" oninput="renderCards()"><select id="cardCategory" onchange="renderCards()" style="max-width:190px"><option value="">All categories</option></select></div>
+    <div class="info-grid" id="allCards" style="margin-top:14px"></div>
+  </section>
+<section class="page" id="page-notes">
+
+    <div class="section-head notes-section-head">
+        <div>
+            <h2>My Notes</h2>
+            <p>Keep your reminders, ideas, and important information in one place.</p>
+        </div>
+
+        <button
+            class="primary"
+            type="button"
+            onclick="openNoteModal()"
+        >
+            ＋ New note
+        </button>
+    </div>
+
+    <div class="notes-toolbar" style="margin: 5px;">
+        <input
+            id="notesSearch"
+            type="search"
+            placeholder="Search your notes..."
+        >
+
+        <span id="notesCount" style='margin-top: 5px;'>0 notes</span>
+    </div>
+
+    <div id="notesGrid" class="info-grid notes-grid"></div>
+
+</section>
+
+  <section class="page" id="page-settings">
+    <div class="section-head"><div><h2>Settings & backup</h2><p>Customize your dashboard and manage your local data.</p></div></div>
+    <div class="settings-box"><h3>Workspace appearance</h3><div class="form-grid">
+      <div class="field"><label>Workspace name</label><input id="settingBrand" placeholder="WorkDesk"></div>
+      <div class="field"><label>Welcome message</label><input id="settingWelcome" placeholder="Good day, welcome back."></div>
+      <button class="primary" onclick="saveSettings()">Save settings</button>
+    </div></div>
+    <div class="settings-box"><h3>Backup / restore</h3><p class="muted">Export a JSON backup of your links, cards, and settings. Import it to restore or move your workspace.</p><div class="toolbar"><button class="primary" onclick="exportData()">Export backup</button><label><button onclick="document.getElementById('importFile').click()">Import backup</button><input type="file" id="importFile" accept="application/json,.json" hidden onchange="importData(event)"></label></div></div>
+    <div class="settings-box"><h3>Data management</h3><p class="muted">Everything is stored in this browser on this device. Clearing browser data may erase it. Local storage is not synced between devices or browsers.</p><button class="danger" onclick="clearData()">Reset all dashboard data</button></div>
+  </section>
+</main>
+</div>
+<div class="modal-backdrop" id="modalBackdrop">
+
+    <div class="modal">
+
+        <h2 id="modalTitle">Create New Note</h2>
+
+        <div id="modalBody"></div>
+
+        <div class="modal-actions">
+            <button type="button" onclick="closeNoteModal()">
+                Cancel
+            </button>
+
+            <button type="button" class="primary" id="modalSave">
+                Save
+            </button>
+        </div>
+
+    </div>
+
+</div>
+
+<div class="modal-backdrop" id="modalBackdrop" onclick="if(event.target===this)closeModal()"><div class="modal"><h2 id="modalTitle">Edit item</h2><div id="modalBody"></div><div class="modal-actions"><button onclick="closeModal()">Cancel</button><button class="primary" id="modalSave">Save</button></div></div></div>
+<div class="toast" id="toast">Saved</div>
+<script src="script.js"></script>
+<script src="workdesk-notes.js"></script>
+</body>
+</html>

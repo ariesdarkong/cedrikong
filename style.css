@@ -1,0 +1,768 @@
+:root {
+    --bg: #0b1020;
+    --panel: rgba(19,27,48,.78);
+    --panel2: rgba(25,35,59,.9);
+    --text: #eef3ff;
+    --muted: #9aa8c5;
+    --accent: #7c9cff;
+    --accent2: #5eead4;
+    --border: rgba(160,180,230,.16);
+    --danger: #fb7185;
+    --shadow: 0 18px 50px rgba(0,0,0,.25);
+    --radius: 18px;
+}
+
+* {
+    box-sizing: border-box
+}
+
+body {
+    margin: 0;
+    background: radial-gradient(900px 500px at 15% -10%,#1b2a54 0%,transparent 65%),radial-gradient(700px 400px at 100% 0%,#153b45 0%,transparent 60%),var(--bg);
+    color: var(--text);
+    font: 14px/1.45 Inter,Segoe UI,Arial,sans-serif;
+    min-height: 100vh
+}
+
+button,input,textarea,select {
+    font: inherit;
+    color: inherit
+}
+
+button {
+    cursor: pointer;
+    border: 1px solid var(--border);
+    background: #202d4b;
+    border-radius: 10px;
+    padding: 9px 12px
+}
+
+button:hover {
+    filter: brightness(1.12)
+}
+
+button.primary {
+    background: linear-gradient(135deg,#6688ff,#6b67e8);
+    border: 0
+}
+
+button.danger {
+    color: #ffb5c0;
+    background: rgba(251,113,133,.09)
+}
+
+input,textarea,select {
+    width: 100%;
+    background: #0d1528;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px;
+    outline: none
+}
+
+input:focus,textarea:focus,select:focus {
+    border-color: var(--accent)
+}
+
+textarea {
+    resize: vertical;
+    min-height: 100px
+}
+
+.app {
+    display: grid;
+    grid-template-columns: 245px 1fr;
+    min-height: 100vh
+}
+
+.sidebar {
+    padding: 22px 16px;
+    border-right: 1px solid var(--border);
+    background: rgba(8,13,26,.65);
+    backdrop-filter: blur(18px);
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow: auto
+}
+
+.logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 19px;
+    font-weight: 800;
+    margin: 4px 8px 28px
+}
+
+.logo-icon {
+    display: grid;
+    place-items: center;
+    width: 35px;
+    height: 35px;
+    border-radius: 12px;
+    background: linear-gradient(135deg,#7c9cff,#5eead4);
+    color: #07111f;
+    font-weight: 900
+}
+
+.nav {
+    display: grid;
+    gap: 6px
+}
+
+.nav button {
+    background: transparent;
+    border: 0;
+    text-align: left;
+    color: var(--muted);
+    padding: 12px
+}
+
+.nav button.active,.nav button:hover {
+    background: rgba(124,156,255,.13);
+    color: var(--text)
+}
+
+.side-note {
+    margin-top: 28px;
+    padding: 14px;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    color: var(--muted);
+    font-size: 12px
+}
+
+main {
+    padding: 28px clamp(16px,3vw,42px);
+    max-width: 1600px;
+    width: 100%;
+    margin: auto
+}
+
+.topbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 25px
+}
+
+.topbar h1 {
+    font-size: 26px;
+    margin: 0
+}
+
+.sub {
+    color: var(--muted);
+    margin-top: 5px
+}
+
+.top-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap
+}
+
+.page {
+    display: none
+}
+
+.page.active {
+    display: block
+}
+
+.section-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin: 25px 0 14px
+}
+
+.section-head h2 {
+    font-size: 17px;
+    margin: 0
+}
+
+.section-head p {
+    margin: 4px 0 0;
+    color: var(--muted);
+    font-size: 12px
+}
+
+.grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill,minmax(205px,1fr));
+    gap: 13px
+}
+
+.link-card,.info-card,.stat-card {
+    border: 1px solid var(--border);
+    background: var(--panel);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    backdrop-filter: blur(12px);
+        
+}
+
+.link-card {
+    padding: 15px;
+    position: relative;
+    min-height: 115px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 12px;
+
+}
+
+.link-top {
+    display: flex;
+    align-items: center;
+    gap: 11px
+}
+
+.link-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 12px;
+    display: grid;
+    place-items: center;
+    background: rgba(124,156,255,.13);
+    font-size: 20px;
+    flex-shrink: 0
+}
+
+.link-title {
+    font-weight: 700;
+    word-break: break-word
+}
+
+.link-desc {
+    color: var(--muted);
+    font-size: 12px;
+    margin-top: 3px
+}
+
+.link-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center
+}
+
+.open-link {
+    border: 0;
+    background: transparent;
+    padding: 0;
+    color: #a9bcff;
+    font-weight: 600
+}
+
+.mini-actions {
+    display: flex;
+    gap: 5px
+}
+
+.mini-actions button {
+    font-size: 11px;
+    padding: 5px 7px;
+    background: rgba(255,255,255,.04)
+}
+
+.info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill,minmax(270px,1fr));
+    gap: 14px
+}
+
+.info-card {
+    padding: 17px;
+    display: flex;
+    flex-direction: column;
+    min-height: 190px
+}
+
+.card-title-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    align-items: center
+}
+
+.card-title {
+    font-weight: 750;
+    font-size: 16px;
+    overflow-wrap: anywhere
+}
+
+.card-content {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    color: #d0d9ee;
+    margin: 13px 0;
+    flex: 1
+}
+
+.card-footer {
+    display: flex;
+    gap: 7px;
+    justify-content: flex-end
+}
+
+.tag {
+    font-size: 11px;
+    color: var(--accent2);
+    border: 1px solid rgba(94,234,212,.2);
+    border-radius: 999px;
+    padding: 3px 8px
+}
+
+.stats {
+    display: grid;
+    grid-template-columns: repeat(3,minmax(0,1fr));
+    gap: 12px
+}
+
+.stat-card {
+    padding: 16px
+}
+
+.stat-label {
+    color: var(--muted);
+    font-size: 12px
+}
+
+.stat-value {
+    font-size: 26px;
+    font-weight: 800;
+    margin-top: 7px
+}
+
+.toolbar {
+    display: flex;
+    gap: 9px;
+    align-items: center;
+    flex-wrap: wrap
+}
+
+.toolbar input {
+    max-width: 320px
+}
+
+.empty {
+    border: 1px dashed var(--border);
+    border-radius: 16px;
+    padding: 28px;
+    text-align: center;
+    color: var(--muted)
+}
+
+.modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.65);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 18px;
+    z-index: 99
+}
+
+.modal-backdrop.show {
+    display: flex
+}
+
+.modal {
+    width: min(560px,100%);
+    max-height: 90vh;
+    overflow: auto;
+    background: #111a2d;
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 22px;
+    box-shadow: 0 30px 100px #000
+}
+
+.modal h2 {
+    margin: 0 0 16px
+}
+
+.form-grid {
+    display: grid;
+    gap: 12px
+}
+
+.field label {
+    display: block;
+    color: var(--muted);
+    font-size: 12px;
+    margin-bottom: 5px
+}
+
+.modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 18px
+}
+
+.toast {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: #1d2b48;
+    border: 1px solid var(--border);
+    padding: 12px 16px;
+    border-radius: 12px;
+    opacity: 0;
+    transform: translateY(10px);
+    transition: .2s;
+    pointer-events: none;
+    z-index: 120
+}
+
+.toast.show {
+    opacity: 1;
+    transform: translateY(0)
+}
+
+.settings-box {
+    max-width: 700px;
+    border: 1px solid var(--border);
+    background: var(--panel);
+    padding: 20px;
+    border-radius: 16px;
+    margin-bottom: 15px
+}
+
+.settings-box h3 {
+    margin-top: 0
+}
+
+.muted {
+    color: var(--muted);
+    font-size: 12px
+}
+
+@media(max-width: 800px) {
+    .app {
+        grid-template-columns:1fr
+    }
+
+    .sidebar {
+        height: auto;
+        position: relative;
+        padding: 12px;
+        border-right: 0;
+        border-bottom: 1px solid var(--border)
+    }
+
+    .logo {
+        margin: 5px 8px 12px
+    }
+
+    .nav {
+        display: flex;
+        overflow: auto
+    }
+
+    .nav button {
+        white-space: nowrap
+    }
+
+    .side-note {
+        display: none
+    }
+
+    main {
+        padding: 18px
+    }
+
+    .stats {
+        grid-template-columns: 1fr
+    }
+
+    .topbar {
+        align-items: flex-start;
+        flex-direction: column
+    }
+}
+
+/* ================================
+   SEARCH BAR & TOOLBAR SPACING
+================================ */
+
+.toolbar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    margin: 15px 0 22px;
+    padding: 0;
+}
+
+.toolbar input {
+    flex: 1;
+    width: 100%;
+    max-width: 380px;
+    min-width: 200px;
+    margin: 0;
+}
+
+.toolbar button {
+    margin: 0;
+    white-space: nowrap;
+}
+
+/* ================================
+   SECTION SPACING
+================================ */
+
+.section-head {
+    margin: 28px 0 16px;
+    align-items: center;
+}
+
+.section-head:first-child {
+    margin-top: 10px;
+}
+
+/* ================================
+   WIDGET / CARD GRID SPACING
+================================ */
+
+.grid {
+    display: grid;
+    grid-template-columns: repeat(
+        auto-fill,
+        minmax(205px, 1fr)
+    );
+    gap: 18px;
+    width: 100%;
+    margin: 0 0 25px;
+}
+
+.info-grid {
+    gap: 18px;
+    width: 100%;
+    margin-bottom: 25px;
+}
+
+.stats {
+    gap: 16px;
+    margin-bottom: 25px;
+}
+
+/* ================================
+   CARD ALIGNMENT
+================================ */
+
+.link-card,
+.info-card,
+.stat-card {
+    min-width: 0;
+    margin: 0;
+}
+
+.link-card {
+    padding: 17px;
+    gap: 14px;
+}
+
+.info-card {
+    padding: 18px;
+}
+
+/* ================================
+   MAIN CONTENT SPACING
+================================ */
+
+main {
+    padding: 30px clamp(18px, 3vw, 42px);
+}
+
+.page.active {
+    width: 100%;
+}
+
+.topbar {
+    margin-bottom: 28px;
+}
+
+/* ================================
+   MOBILE RESPONSIVENESS
+================================ */
+
+@media (max-width: 800px) {
+    main {
+        padding: 18px 14px;
+    }
+
+    .toolbar {
+        gap: 9px;
+        margin: 12px 0 20px;
+    }
+
+    .toolbar input {
+        max-width: none;
+        min-width: 0;
+        flex: 1 1 100%;
+    }
+
+    .grid {
+        grid-template-columns: repeat(
+            auto-fill,
+            minmax(150px, 1fr)
+        );
+        gap: 12px;
+    }
+
+    .info-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+
+    .section-head {
+        margin: 22px 0 13px;
+    }
+}
+
+@media (max-width: 420px) {
+    .toolbar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .toolbar input,
+    .toolbar button {
+        width: 100%;
+        max-width: none;
+    }
+
+    .grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* =========================================
+   WORKDESK NOTES - CARD OVERFLOW FIX
+   ========================================= */
+
+.notes-grid {
+    align-items: stretch;
+}
+
+.note-card {
+    display: flex;
+    flex-direction: column;
+    height: 320px;
+    min-height: 320px;
+    max-height: 320px;
+    overflow: hidden;
+    box-sizing: border-box;
+}
+
+.note-card .card-title-row {
+    flex-shrink: 0;
+}
+
+.note-card .note-updated {
+    flex-shrink: 0;
+}
+
+.note-card .note-content {
+    flex: 1;
+    min-height: 0;
+    max-height: none;
+    overflow-y: auto;
+    overflow-x: hidden;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    padding-right: 8px;
+    margin: 12px 0;
+}
+
+/* Scrollbar styling */
+.note-card .note-content::-webkit-scrollbar {
+    width: 6px;
+}
+
+.note-card .note-content::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.note-card .note-content::-webkit-scrollbar-thumb {
+    background: rgba(150, 165, 190, 0.4);
+    border-radius: 10px;
+}
+
+.note-card .note-content::-webkit-scrollbar-thumb:hover {
+    background: rgba(150, 165, 190, 0.7);
+}
+
+/* Keep buttons at the bottom */
+.note-card .card-footer {
+    margin-top: auto;
+    flex-shrink: 0;
+}
+
+/* =========================================
+   NOTES PAGE - ALIGN CONTENT TO TOP
+   ========================================= */
+
+#page-notes {
+    display: block;
+    align-self: stretch;
+    justify-content: flex-start;
+    align-items: flex-start;
+    padding-top: 10px;
+}
+
+#page-notes .section-head {
+    margin-top: 0;
+    margin-bottom: 20px;
+}
+
+#page-notes .notes-toolbar {
+    margin-top: 5px;
+}
+
+#page-notes .notes-grid {
+    margin-top: 0;
+    align-content: start;
+    align-items: start;
+}
+
+/* Notes Section Spacing */
+#page-notes {
+    padding: 15px 20px;
+}
+
+#page-notes .section-head {
+    margin-bottom: 20px;
+}
+
+#page-notes .notes-toolbar {
+    margin-top: 5px;
+    margin-bottom: 20px;
+}
+
+#page-notes .notes-grid {
+    margin-top: 10px;
+    gap: 20px;
+}
+/* Move Notes Section Higher */
+#page-notes {
+    padding-top: 0 !important;
+    margin-top: -15px !important;
+}
+
+#page-notes .section-head {
+    margin-top: 0 !important;
+}
+#page-notes .notes-count {
+    display: inline-block;
+    margin: 5px;
+}

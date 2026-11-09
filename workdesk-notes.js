@@ -84,8 +84,7 @@
             button = document.createElement('button');
             button.type = 'button';
             button.id = 'notesNavButton';
-            button.dataset.page = 'notes';
-            button.textContent = '📝 Notes';
+ 
 
             nav.appendChild(button);
         }

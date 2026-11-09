@@ -1,22 +1,17 @@
 
 /* =========================================
-   WORKDESK DASHBOARD
-   Quick Links, Work Cards, Spiels & Settings
+   WORKDESK - MAIN JAVASCRIPT
+   Quick Links, Work Cards, My Spiels,
+   Drag & Drop, Settings, Import & Export
 ========================================= */
 
 const STORAGE_KEY = 'workdesk_dashboard_v1';
-
-
-/* =========================================
-   DEFAULT DATA
-========================================= */
 
 const starter = {
     settings: {
         brand: 'WorkDesk',
         welcome: 'Good day, welcome back.'
     },
-
     links: [
         {
             id: 'l1',
@@ -67,13 +62,12 @@ const starter = {
             category: 'Tools'
         }
     ],
-
     cards: [
         {
             id: 'c1',
             title: 'Support notes',
             category: 'Notes',
-            content: 'Add your common work notes here. Click Edit to customize this card.',
+            content: 'Add your common work notes here.',
             updated: Date.now()
         },
         {
@@ -84,13 +78,11 @@ const starter = {
             updated: Date.now()
         }
     ],
-
     spiels: []
 };
 
-
 /* =========================================
-   LOAD DATA
+   DATA
 ========================================= */
 
 function loadData() {
@@ -98,13 +90,11 @@ function loadData() {
         const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
 
         if (saved && saved.links && saved.cards) {
-            if (!Array.isArray(saved.spiels)) {
-                saved.spiels = [];
-            }
+            saved.spiels = Array.isArray(saved.spiels)
+                ? saved.spiels
+                : [];
 
-            if (!saved.settings) {
-                saved.settings = structuredClone(starter.settings);
-            }
+            saved.settings = saved.settings || starter.settings;
 
             return saved;
         }
@@ -112,11 +102,9 @@ function loadData() {
         return structuredClone(starter);
 
     } catch (error) {
-        console.error('Unable to load WorkDesk data:', error);
         return structuredClone(starter);
     }
 }
-
 
 let data = loadData();
 
@@ -124,35 +112,22 @@ let editLinkId = null;
 let editCardId = null;
 let editSpielId = null;
 
-
-/* =========================================
-   SAVE DATA
-========================================= */
-
 function saveData() {
     try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-
         renderAll();
-
         toast('Saved automatically ✓');
 
     } catch (error) {
         toast('Save failed: browser storage may be full');
-        console.error('WorkDesk storage error:', error);
+        console.error('WorkDesk storage error', error);
     }
 }
-
-
-/* =========================================
-   GENERAL HELPERS
-========================================= */
 
 function uid() {
     return Date.now().toString(36) +
         Math.random().toString(36).slice(2, 8);
 }
-
 
 function toast(message) {
     const el = document.getElementById('toast');
@@ -167,17 +142,15 @@ function toast(message) {
     }, 1800);
 }
 
-
 function escapeHTML(value = '') {
-    return String(value).replace(/[&<>"']/g, character => ({
+    return String(value).replace(/[&<>"']/g, char => ({
         '&': '&amp;',
         '<': '&lt;',
         '>': '&gt;',
         '"': '&quot;',
         "'": '&#39;'
-    }[character]));
+    })[char]);
 }
-
 
 function safeURL(url) {
     url = (url || '').trim();
@@ -187,10 +160,10 @@ function safeURL(url) {
     }
 
     try {
-        const parsedURL = new URL(url);
+        const parsed = new URL(url);
 
-        return ['http:', 'https:'].includes(parsedURL.protocol)
-            ? parsedURL.href
+        return ['http:', 'https:'].includes(parsed.protocol)
+            ? parsed.href
             : null;
 
     } catch {
@@ -198,20 +171,19 @@ function safeURL(url) {
     }
 }
 
-
 /* =========================================
    PAGE NAVIGATION
 ========================================= */
 
 function goPage(page) {
-    document.querySelectorAll('.page').forEach(element => {
-        element.classList.remove('active');
+    document.querySelectorAll('.page').forEach(el => {
+        el.classList.remove('active');
     });
 
-    const targetPage = document.getElementById('page-' + page);
+    const target = document.getElementById('page-' + page);
 
-    if (targetPage) {
-        targetPage.classList.add('active');
+    if (target) {
+        target.classList.add('active');
     }
 
     document.querySelectorAll('.nav button').forEach(button => {
@@ -221,19 +193,14 @@ function goPage(page) {
         );
     });
 
-    if (page === 'links') {
-        renderLinks();
-    }
-
-    if (page === 'cards') {
-        renderCards();
-    }
+    if (page === 'links') renderLinks();
+    if (page === 'cards') renderCards();
+    if (page === 'spiels') renderSpiels();
 
     if (page === 'notes' && typeof renderNotes === 'function') {
         renderNotes();
     }
 }
-
 
 document.querySelectorAll('.nav button').forEach(button => {
     button.addEventListener('click', () => {
@@ -241,17 +208,17 @@ document.querySelectorAll('.nav button').forEach(button => {
     });
 });
 
-
 /* =========================================
    QUICK LINKS
 ========================================= */
 
 function linkHTML(link) {
     return `
-        <div class="link-card">
+        <div class="link-card"
+             data-link-card="${escapeHTML(link.id)}"
+             draggable="true">
 
             <div class="link-top">
-
                 <div class="link-icon">
                     ${escapeHTML(link.icon || '🔗')}
                 </div>
@@ -265,77 +232,62 @@ function linkHTML(link) {
                         ${escapeHTML(link.description || link.category || 'Quick link')}
                     </div>
                 </div>
-
             </div>
 
             <div class="link-actions">
-
-                <button
-                    class="open-link"
-                    onclick="openExternal('${escapeHTML(link.id)}')"
-                >
+                <button class="open-link"
+                        onclick="openExternal('${escapeHTML(link.id)}')">
                     Open ↗
                 </button>
 
                 <div class="mini-actions">
+                    <button onclick="editLink('${escapeHTML(link.id)}')">Edit</button>
 
-                    <button onclick="editLink('${escapeHTML(link.id)}')">
-                        Edit
-                    </button>
-
-                    <button
-                        class="danger"
-                        onclick="deleteLink('${escapeHTML(link.id)}')"
-                    >
+                    <button class="danger"
+                            onclick="deleteLink('${escapeHTML(link.id)}')">
                         Delete
                     </button>
-
                 </div>
-
             </div>
-
         </div>
     `;
 }
-
 
 function renderLinks() {
     const dashboard = document.getElementById('dashboardLinks');
 
     if (dashboard) {
-        dashboard.innerHTML =
-            data.links.slice(0, 8).map(linkHTML).join('') ||
+        dashboard.innerHTML = data.links
+            .slice(0, 8)
+            .map(linkHTML)
+            .join('') ||
             '<div class="empty">Add a quick link to get started.</div>';
     }
 
     const page = document.getElementById('page-links');
 
-    if (!page || !page.classList.contains('active')) {
-        return;
-    }
+    if (!page || !page.classList.contains('active')) return;
 
     const search = (
         document.getElementById('linkSearch')?.value || ''
     ).toLowerCase();
 
-    const filteredLinks = data.links.filter(link => {
-        const searchableText =
-            link.title + ' ' +
-            link.description + ' ' +
-            link.category;
-
-        return searchableText.toLowerCase().includes(search);
+    const filtered = data.links.filter(link => {
+        return (
+            (link.title + ' ' + link.description + ' ' + link.category)
+                .toLowerCase()
+                .includes(search)
+        );
     });
 
-    const allLinks = document.getElementById('allLinks');
+    const container = document.getElementById('allLinks');
 
-    if (allLinks) {
-        allLinks.innerHTML = filteredLinks.length
-            ? filteredLinks.map(linkHTML).join('')
+    if (container) {
+        container.innerHTML = filtered.length
+            ? filtered.map(linkHTML).join('')
             : '<div class="empty">No links found. Add your first shortcut.</div>';
     }
 }
-
 
 function openExternal(id) {
     const link = data.links.find(item => item.id === id);
@@ -352,7 +304,6 @@ function openExternal(id) {
     window.open(url, '_blank', 'noopener,noreferrer');
 }
 
-
 function openLinkModal(id = null) {
     editLinkId = id;
 
@@ -366,57 +317,35 @@ function openLinkModal(id = null) {
 
     showModal(
         id ? 'Edit quick link' : 'Add quick link',
-
         `
             <div class="form-grid">
-
                 <div class="field">
                     <label>Link name *</label>
-                    <input
-                        id="fTitle"
-                        value="${escapeHTML(link.title)}"
-                        required
-                    >
+                    <input id="fTitle" value="${escapeHTML(link.title)}" required>
                 </div>
 
                 <div class="field">
                     <label>URL *</label>
-                    <input
-                        id="fURL"
-                        value="${escapeHTML(link.url)}"
-                        placeholder="https://example.com"
-                        required
-                    >
+                    <input id="fURL" value="${escapeHTML(link.url)}"
+                           placeholder="https://example.com" required>
                 </div>
 
                 <div class="field">
                     <label>Icon / emoji</label>
-                    <input
-                        id="fIcon"
-                        value="${escapeHTML(link.icon)}"
-                        maxlength="8"
-                    >
+                    <input id="fIcon" value="${escapeHTML(link.icon)}" maxlength="8">
                 </div>
 
                 <div class="field">
                     <label>Description</label>
-                    <input
-                        id="fDesc"
-                        value="${escapeHTML(link.description || '')}"
-                    >
+                    <input id="fDesc" value="${escapeHTML(link.description || '')}">
                 </div>
 
                 <div class="field">
                     <label>Category</label>
-                    <input
-                        id="fCat"
-                        value="${escapeHTML(link.category || 'Work')}"
-                    >
+                    <input id="fCat" value="${escapeHTML(link.category || 'Work')}">
                 </div>
-
             </div>
         `,
-
         () => {
             const title = document.getElementById('fTitle').value.trim();
             const url = safeURL(document.getElementById('fURL').value);
@@ -436,8 +365,8 @@ function openLinkModal(id = null) {
             };
 
             if (id) {
-                data.links = data.links.map(existing =>
-                    existing.id === id ? item : existing
+                data.links = data.links.map(old =>
+                    old.id === id ? item : old
                 );
             } else {
                 data.links.unshift(item);
@@ -449,19 +378,16 @@ function openLinkModal(id = null) {
     );
 }
 
-
 function editLink(id) {
     openLinkModal(id);
 }
 
-
 function deleteLink(id) {
-    if (confirm('Delete this quick link?')) {
-        data.links = data.links.filter(item => item.id !== id);
-        saveData();
-    }
-}
+    if (!confirm('Delete this quick link?')) return;
 
+    data.links = data.links.filter(item => item.id !== id);
+    saveData();
+}
 
 /* =========================================
    WORK CARDS
@@ -469,10 +395,11 @@ function deleteLink(id) {
 
 function cardHTML(card) {
     return `
-        <div class="info-card">
+        <div class="info-card"
+             data-work-card="${escapeHTML(card.id)}"
+             draggable="true">
 
             <div class="card-title-row">
-
                 <div class="card-title">
                     ${escapeHTML(card.title)}
                 </div>
@@ -480,7 +407,6 @@ function cardHTML(card) {
                 <span class="tag">
                     ${escapeHTML(card.category || 'General')}
                 </span>
-
             </div>
 
             <div class="card-content">
@@ -488,66 +414,53 @@ function cardHTML(card) {
             </div>
 
             <div class="card-footer">
+                <button onclick="copyCard('${escapeHTML(card.id)}')">Copy</button>
+                <button onclick="editCard('${escapeHTML(card.id)}')">Edit</button>
 
-                <button onclick="copyCard('${escapeHTML(card.id)}')">
-                    Copy
-                </button>
-
-                <button onclick="editCard('${escapeHTML(card.id)}')">
-                    Edit
-                </button>
-
-                <button
-                    class="danger"
-                    onclick="deleteCard('${escapeHTML(card.id)}')"
-                >
+                <button class="danger"
+                        onclick="deleteCard('${escapeHTML(card.id)}')">
                     Delete
                 </button>
-
             </div>
-
         </div>
     `;
 }
-
 
 function renderCards() {
     const dashboard = document.getElementById('dashboardCards');
 
     if (dashboard) {
-        dashboard.innerHTML =
-            data.cards.slice(0, 4).map(cardHTML).join('') ||
+        dashboard.innerHTML = data.cards
+            .slice(0, 4)
+            .map(cardHTML)
+            .join('') ||
             '<div class="empty">No saved cards yet.</div>';
     }
 
     const page = document.getElementById('page-cards');
 
-    if (!page || !page.classList.contains('active')) {
-        return;
-    }
+    if (!page || !page.classList.contains('active')) return;
 
     const search = (
         document.getElementById('cardSearch')?.value || ''
     ).toLowerCase();
 
-    const category =
-        document.getElementById('cardCategory')?.value || '';
+    const category = document.getElementById('cardCategory')?.value || '';
 
-    const filteredCards = data.cards.filter(card => {
-        const searchableText =
-            card.title + ' ' +
-            card.content + ' ' +
-            card.category;
+    const filtered = data.cards.filter(card => {
+        const matchesSearch = (
+            card.title + ' ' + card.content + ' ' + card.category
+        ).toLowerCase().includes(search);
 
-        return searchableText.toLowerCase().includes(search) &&
+        return matchesSearch &&
             (!category || card.category === category);
     });
 
-    const allCards = document.getElementById('allCards');
+    const container = document.getElementById('allCards');
 
-    if (allCards) {
-        allCards.innerHTML = filteredCards.length
-            ? filteredCards.map(cardHTML).join('')
+    if (container) {
+        container.innerHTML = filtered.length
+            ? filtered.map(cardHTML).join('')
             : '<div class="empty">No cards found. Create a work card.</div>';
     }
 
@@ -562,14 +475,13 @@ function renderCards() {
 
         select.innerHTML =
             '<option value="">All categories</option>' +
-            categories.map(categoryName =>
-                `<option value="${escapeHTML(categoryName)}">${escapeHTML(categoryName)}</option>`
+            categories.map(category =>
+                `<option value="${escapeHTML(category)}">${escapeHTML(category)}</option>`
             ).join('');
 
         select.value = categories.includes(oldValue) ? oldValue : '';
     }
 }
-
 
 function openCardModal(id = null) {
     editCardId = id;
@@ -582,35 +494,24 @@ function openCardModal(id = null) {
 
     showModal(
         id ? 'Edit work card' : 'New work card',
-
         `
             <div class="form-grid">
-
                 <div class="field">
                     <label>Card title *</label>
-                    <input
-                        id="fTitle"
-                        value="${escapeHTML(card.title)}"
-                        required
-                    >
+                    <input id="fTitle" value="${escapeHTML(card.title)}" required>
                 </div>
 
                 <div class="field">
                     <label>Category</label>
-                    <input
-                        id="fCat"
-                        value="${escapeHTML(card.category || 'Notes')}"
-                    >
+                    <input id="fCat" value="${escapeHTML(card.category || 'Notes')}">
                 </div>
 
                 <div class="field">
                     <label>Information / notes *</label>
                     <textarea id="fContent" rows="8">${escapeHTML(card.content || '')}</textarea>
                 </div>
-
             </div>
         `,
-
         () => {
             const title = document.getElementById('fTitle').value.trim();
             const content = document.getElementById('fContent').value;
@@ -629,8 +530,8 @@ function openCardModal(id = null) {
             };
 
             if (id) {
-                data.cards = data.cards.map(existing =>
-                    existing.id === id ? item : existing
+                data.cards = data.cards.map(old =>
+                    old.id === id ? item : old
                 );
             } else {
                 data.cards.unshift(item);
@@ -642,19 +543,16 @@ function openCardModal(id = null) {
     );
 }
 
-
 function editCard(id) {
     openCardModal(id);
 }
 
-
 function deleteCard(id) {
-    if (confirm('Delete this work card?')) {
-        data.cards = data.cards.filter(item => item.id !== id);
-        saveData();
-    }
-}
+    if (!confirm('Delete this work card?')) return;
 
+    data.cards = data.cards.filter(item => item.id !== id);
+    saveData();
+}
 
 async function copyCard(id) {
     const card = data.cards.find(item => item.id === id);
@@ -666,16 +564,12 @@ async function copyCard(id) {
         toast('Card content copied');
 
     } catch {
-        toast('Clipboard unavailable; select and copy the text manually');
+        toast('Clipboard unavailable; select and copy manually');
     }
 }
 
-
 /* =========================================
-   SPIELS LIBRARY
-   Three cards per row
-   Click card to copy
-   Pencil button to edit
+   MY SPIELS
 ========================================= */
 
 function renderSpiels() {
@@ -683,51 +577,36 @@ function renderSpiels() {
 
     if (!grid) return;
 
-    if (!Array.isArray(data.spiels)) {
-        data.spiels = [];
-    }
+    grid.innerHTML = data.spiels.length
+        ? data.spiels.map(spiel => `
+            <div class="spiel-card"
+                 data-spiel-card="${escapeHTML(spiel.id)}"
+                 draggable="true"
+                 tabindex="0"
+                 role="button"
+                 aria-label="Copy ${escapeHTML(spiel.title)}">
 
-    if (data.spiels.length === 0) {
-        grid.innerHTML = `
-            <div class="spiel-empty">
-                <strong>No spiels yet</strong>
-                <p>Add your first customer support spiel.</p>
+                <div class="spiel-card-content">
+                    <div class="spiel-title">
+                        ${escapeHTML(spiel.title)}
+                    </div>
+                </div>
+
+                <div class="spiel-actions">
+                    <button
+                        type="button"
+                        class="spiel-edit-btn"
+                        data-edit-spiel="${escapeHTML(spiel.id)}"
+                        title="Edit spiel"
+                        aria-label="Edit ${escapeHTML(spiel.title)}">
+                        ✏️
+                    </button>
+                </div>
+
             </div>
-        `;
-
-        return;
-    }
-
-    grid.innerHTML = data.spiels.map(spiel => `
-        <article
-            class="spiel-card"
-            data-spiel-card="${escapeHTML(spiel.id)}"
-            tabindex="0"
-            role="button"
-            aria-label="Copy ${escapeHTML(spiel.title)}"
-            title="Click to copy spiel"
-        >
-
-            <div class="spiel-title">
-                ${escapeHTML(spiel.title)}
-            </div>
-
-            <button
-                type="button"
-                class="spiel-edit-btn"
-                data-edit-spiel="${escapeHTML(spiel.id)}"
-                title="Edit spiel"
-                aria-label="Edit ${escapeHTML(spiel.title)}"
-            >
-                ✎
-            </button>
-
-        </article>
-    `).join('');
+        `).join('')
+        : '<div class="empty">No spiels yet. Add your first spiel.</div>';
 }
-
-
-/* OPEN ADD / EDIT MODAL */
 
 function openSpielModal(id = null) {
     editSpielId = id;
@@ -737,21 +616,24 @@ function openSpielModal(id = null) {
         content: ''
     };
 
-    document.getElementById('spielModalTitle').textContent =
-        id ? 'Edit Spiel' : 'Add New Spiel';
+    const backdrop = document.getElementById('spielModalBackdrop');
+    const modalTitle = document.getElementById('spielModalTitle');
+    const titleInput = document.getElementById('spielTitle');
+    const contentInput = document.getElementById('spielContent');
 
-    document.getElementById('spielTitle').value = spiel.title;
-    document.getElementById('spielContent').value = spiel.content;
+    if (!backdrop || !modalTitle || !titleInput || !contentInput) {
+        toast('Spiel modal not found. Check your HTML.');
+        return;
+    }
 
-    document.getElementById('spielModalBackdrop').classList.add('show');
+    modalTitle.textContent = id ? 'Edit spiel' : 'Add new spiel';
 
-    setTimeout(() => {
-        document.getElementById('spielTitle').focus();
-    }, 50);
+    // Load the existing saved information.
+    titleInput.value = spiel.title || '';
+    contentInput.value = spiel.content || '';
+
+    backdrop.classList.add('show');
 }
-
-
-/* CLOSE MODAL */
 
 function closeSpielModal() {
     const backdrop = document.getElementById('spielModalBackdrop');
@@ -763,64 +645,53 @@ function closeSpielModal() {
     editSpielId = null;
 }
 
-
-/* SAVE SPIEL */
-
 function saveSpiel() {
-    const title = document.getElementById('spielTitle').value.trim();
-    const content = document.getElementById('spielContent').value.trim();
+    const titleInput = document.getElementById('spielTitle');
+    const contentInput = document.getElementById('spielContent');
 
-    if (!title) {
-        toast('Please enter a spiel title.');
-        document.getElementById('spielTitle').focus();
+    if (!titleInput || !contentInput) return;
+
+    const title = titleInput.value.trim();
+    const content = contentInput.value.trim();
+
+    if (!title || !content) {
+        toast('Please enter a title and spiel message');
         return;
     }
 
-    if (!content) {
-        toast('Please enter the spiel content.');
-        document.getElementById('spielContent').focus();
-        return;
-    }
+    const existingSpiel = editSpielId
+        ? data.spiels.find(item => item.id === editSpielId)
+        : null;
 
-    const now = Date.now();
+    const item = {
+        ...(existingSpiel || {}),
+        id: editSpielId || uid(),
+        title,
+        content
+    };
 
     if (editSpielId) {
-        data.spiels = data.spiels.map(spiel =>
-            spiel.id === editSpielId
-                ? {
-                    ...spiel,
-                    title,
-                    content,
-                    updated: now
-                }
-                : spiel
+        data.spiels = data.spiels.map(old =>
+            old.id === editSpielId ? item : old
         );
-
     } else {
-        data.spiels.unshift({
-            id: uid(),
-            title,
-            content,
-            created: now,
-            updated: now
-        });
+        data.spiels.unshift(item);
     }
 
     closeSpielModal();
     saveData();
-
-    toast('Spiel saved successfully!');
 }
-
-
-/* EDIT SPIEL */
 
 function editSpiel(id) {
     openSpielModal(id);
 }
 
+function deleteSpiel(id) {
+    if (!confirm('Delete this spiel?')) return;
 
-/* COPY SPIEL */
+    data.spiels = data.spiels.filter(item => item.id !== id);
+    saveData();
+}
 
 async function copySpiel(id) {
     const spiel = data.spiels.find(item => item.id === id);
@@ -828,109 +699,214 @@ async function copySpiel(id) {
     if (!spiel) return;
 
     try {
-        await navigator.clipboard.writeText(spiel.content);
+        await navigator.clipboard.writeText(spiel.content || '');
+        toast('Spiel copied ✓');
 
-        toast('Spiel copied successfully! ✓');
-
-    } catch (error) {
-        // Fallback for browsers where Clipboard API is unavailable.
-
-        const textarea = document.createElement('textarea');
-
-        textarea.value = spiel.content;
-        textarea.style.position = 'fixed';
-        textarea.style.opacity = '0';
-
-        document.body.appendChild(textarea);
-
-        textarea.select();
-
-        const copied = document.execCommand('copy');
-
-        textarea.remove();
-
-        toast(
-            copied
-                ? 'Spiel copied successfully! ✓'
-                : 'Unable to copy spiel.'
-        );
+    } catch {
+        toast('Clipboard unavailable. Please copy manually.');
     }
 }
 
-
-/* SPIEL CARD EVENTS */
+/* =========================================
+   SPIEL CLICK EVENTS
+========================================= */
 
 function initializeSpielEvents() {
     const grid = document.getElementById('spielsGrid');
 
-    if (!grid || grid.dataset.spielsBound === 'true') {
-        return;
+    if (grid && grid.dataset.spielClickBound !== 'true') {
+        grid.dataset.spielClickBound = 'true';
+
+        // Handle both Edit button and card clicks.
+        grid.addEventListener('click', event => {
+
+            // Edit button: open the existing spiel.
+            const editButton = event.target.closest('[data-edit-spiel]');
+
+            if (editButton) {
+                event.preventDefault();
+                event.stopPropagation();
+
+                editSpiel(editButton.dataset.editSpiel);
+                return;
+            }
+
+            // Clicking anywhere else on the card copies the message.
+            const card = event.target.closest('[data-spiel-card]');
+
+            if (card) {
+                copySpiel(card.dataset.spielCard);
+            }
+        });
+
+        // Keyboard support for copying a spiel.
+        grid.addEventListener('keydown', event => {
+            if (event.key !== 'Enter' && event.key !== ' ') return;
+
+            if (event.target.closest('.spiel-actions')) return;
+
+            const card = event.target.closest('[data-spiel-card]');
+
+            if (card) {
+                event.preventDefault();
+                copySpiel(card.dataset.spielCard);
+            }
+        });
     }
 
-    grid.dataset.spielsBound = 'true';
+    const backdrop = document.getElementById('spielModalBackdrop');
 
-    // Clicking the pencil edits the spiel.
-    // Clicking anywhere else on the card copies it.
+    if (backdrop && backdrop.dataset.spielModalBound !== 'true') {
+        backdrop.dataset.spielModalBound = 'true';
 
-    grid.addEventListener('click', event => {
-        const editButton = event.target.closest('[data-edit-spiel]');
+        backdrop.addEventListener('click', event => {
+            if (event.target === backdrop) {
+                closeSpielModal();
+            }
+        });
+    }
 
-        if (editButton) {
-            event.stopPropagation();
+    initializeSpielDragAndDrop();
+}
 
-            editSpiel(editButton.dataset.editSpiel);
-            return;
+/* =========================================
+   DRAG & DROP FOR ALL CARDS
+========================================= */
+
+function initializeSpielDragAndDrop() {
+    const configurations = [
+        {
+            selectors: ['spielsGrid'],
+            itemSelector: '[data-spiel-card]',
+            collection: 'spiels',
+            attribute: 'spielCard'
+        },
+        {
+            selectors: ['allCards', 'dashboardCards'],
+            itemSelector: '[data-work-card]',
+            collection: 'cards',
+            attribute: 'workCard'
+        },
+        {
+            selectors: ['allLinks', 'dashboardLinks'],
+            itemSelector: '[data-link-card]',
+            collection: 'links',
+            attribute: 'linkCard'
         }
+    ];
 
-        const card = event.target.closest('[data-spiel-card]');
+    configurations.forEach(config => {
+        config.selectors.forEach(containerId => {
+            const container = document.getElementById(containerId);
 
-        if (card && grid.contains(card)) {
-            copySpiel(card.dataset.spielCard);
-        }
-    });
+            if (!container || container.dataset.dragInitialized === 'true') {
+                return;
+            }
 
-    // Keyboard support: Enter or Space copies the card.
+            container.dataset.dragInitialized = 'true';
 
-    grid.addEventListener('keydown', event => {
-        const card = event.target.closest('[data-spiel-card]');
+            let draggedId = null;
+            let suppressClick = false;
 
-        if (!card || event.target !== card) return;
+            container.addEventListener('dragstart', event => {
+                const card = event.target.closest(config.itemSelector);
 
-        if (event.key === 'Enter' || event.key === ' ') {
-            event.preventDefault();
-            copySpiel(card.dataset.spielCard);
-        }
+                if (!card) return;
+
+                draggedId = card.dataset[config.attribute];
+
+                card.classList.add('dragging');
+
+                suppressClick = true;
+
+                if (event.dataTransfer) {
+                    event.dataTransfer.effectAllowed = 'move';
+                    event.dataTransfer.setData('text/plain', draggedId);
+                }
+            });
+
+            container.addEventListener('dragover', event => {
+                if (!draggedId) return;
+
+                event.preventDefault();
+
+                const target = event.target.closest(config.itemSelector);
+
+                if (!target || target.dataset[config.attribute] === draggedId) {
+                    return;
+                }
+
+                if (event.dataTransfer) {
+                    event.dataTransfer.dropEffect = 'move';
+                }
+            });
+
+            container.addEventListener('drop', event => {
+                if (!draggedId) return;
+
+                event.preventDefault();
+
+                const target = event.target.closest(config.itemSelector);
+
+                if (!target) return;
+
+                const targetId = target.dataset[config.attribute];
+
+                if (targetId === draggedId) return;
+
+                const items = data[config.collection];
+
+                const fromIndex = items.findIndex(item => item.id === draggedId);
+                const toIndex = items.findIndex(item => item.id === targetId);
+
+                if (fromIndex < 0 || toIndex < 0) return;
+
+                const movedItem = items.splice(fromIndex, 1)[0];
+
+                items.splice(toIndex, 0, movedItem);
+
+                draggedId = null;
+
+                saveData();
+            });
+
+            container.addEventListener('dragend', () => {
+                container.querySelectorAll('.dragging').forEach(card => {
+                    card.classList.remove('dragging');
+                });
+
+                draggedId = null;
+
+                setTimeout(() => {
+                    suppressClick = false;
+                }, 100);
+            });
+
+            container.addEventListener('click', event => {
+                if (!suppressClick) return;
+
+                event.preventDefault();
+                event.stopPropagation();
+                suppressClick = false;
+            }, true);
+        });
     });
 }
 
-
-/* CLOSE SPIEL MODAL WHEN CLICKING OUTSIDE */
-
-document.getElementById('spielModalBackdrop')?.addEventListener('click', function(event) {
-    if (event.target === this) {
-        closeSpielModal();
-    }
-});
-
-
 /* =========================================
-   GENERAL DASHBOARD MODAL
+   GENERAL MODAL
 ========================================= */
 
 function showModal(title, body, onSave) {
     document.getElementById('modalTitle').textContent = title;
     document.getElementById('modalBody').innerHTML = body;
-
     document.getElementById('modalBackdrop').classList.add('show');
-
     document.getElementById('modalSave').onclick = onSave;
 }
-
 
 function closeModal() {
     document.getElementById('modalBackdrop').classList.remove('show');
 }
-
 
 /* =========================================
    SETTINGS
@@ -945,18 +921,17 @@ function saveSettings() {
     saveData();
 }
 
-
 /* =========================================
-   RENDER ALL DASHBOARD CONTENT
+   RENDER EVERYTHING
 ========================================= */
 
 function renderAll() {
+    data.spiels = data.spiels || [];
+
     const brandName = document.getElementById('brandName');
     const welcomeTitle = document.getElementById('welcomeTitle');
     const settingBrand = document.getElementById('settingBrand');
     const settingWelcome = document.getElementById('settingWelcome');
-    const linkCount = document.getElementById('linkCount');
-    const cardCount = document.getElementById('cardCount');
 
     if (brandName) {
         brandName.textContent = data.settings.brand || 'WorkDesk';
@@ -974,22 +949,19 @@ function renderAll() {
         settingWelcome.value = data.settings.welcome || '';
     }
 
-    if (linkCount) {
-        linkCount.textContent = data.links.length;
-    }
+    const linkCount = document.getElementById('linkCount');
+    const cardCount = document.getElementById('cardCount');
 
-    if (cardCount) {
-        cardCount.textContent = data.cards.length;
-    }
+    if (linkCount) linkCount.textContent = data.links.length;
+    if (cardCount) cardCount.textContent = data.cards.length;
 
     renderLinks();
     renderCards();
     renderSpiels();
 }
 
-
 /* =========================================
-   EXPORT BACKUP
+   EXPORT DATA
 ========================================= */
 
 function exportData() {
@@ -1001,11 +973,8 @@ function exportData() {
     const link = document.createElement('a');
 
     link.href = URL.createObjectURL(blob);
-
-    link.download =
-        'workdesk-backup-' +
-        new Date().toISOString().slice(0, 10) +
-        '.json';
+    link.download = 'workdesk-backup-' +
+        new Date().toISOString().slice(0, 10) + '.json';
 
     link.click();
 
@@ -1014,9 +983,8 @@ function exportData() {
     toast('Backup exported');
 }
 
-
 /* =========================================
-   IMPORT BACKUP
+   IMPORT DATA
 ========================================= */
 
 function importData(event) {
@@ -1028,32 +996,28 @@ function importData(event) {
 
     reader.onload = () => {
         try {
-            const importedData = JSON.parse(reader.result);
+            const imported = JSON.parse(reader.result);
 
             if (
-                !Array.isArray(importedData.links) ||
-                !Array.isArray(importedData.cards) ||
-                !importedData.settings
+                !Array.isArray(imported.links) ||
+                !Array.isArray(imported.cards) ||
+                !imported.settings
             ) {
-                throw new Error('Invalid backup structure');
+                throw new Error('Invalid backup');
             }
 
-            if (!Array.isArray(importedData.spiels)) {
-                importedData.spiels = [];
-            }
+            imported.spiels = Array.isArray(imported.spiels)
+                ? imported.spiels
+                : [];
 
             if (confirm('Import this backup? It will replace the current dashboard data.')) {
-                data = importedData;
-
+                data = imported;
                 saveData();
-
                 toast('Backup restored');
             }
 
-        } catch (error) {
+        } catch {
             alert('Invalid WorkDesk backup file.');
-            console.error(error);
-
         }
 
         event.target.value = '';
@@ -1062,36 +1026,31 @@ function importData(event) {
     reader.readAsText(file);
 }
 
-
 /* =========================================
-   CLEAR DASHBOARD DATA
+   CLEAR DATA
 ========================================= */
 
 function clearData() {
-    if (confirm('This will permanently remove all dashboard links, cards, and spiels from this browser. Continue?')) {
-
-        localStorage.removeItem(STORAGE_KEY);
-
-        data = {
-            settings: {
-                brand: 'WorkDesk',
-                welcome: 'Good day, welcome back.'
-            },
-
-            links: [],
-            cards: [],
-            spiels: []
-        };
-
-        saveData();
+    if (!confirm('This will permanently remove all dashboard links, cards, and spiels from this browser. Continue?')) {
+        return;
     }
+
+    data = {
+        settings: {
+            brand: 'WorkDesk',
+            welcome: 'Good day, welcome back.'
+        },
+        links: [],
+        cards: [],
+        spiels: []
+    };
+
+    saveData();
 }
 
-
 /* =========================================
-   INITIALIZE DASHBOARD
+   INITIALIZE
 ========================================= */
 
 initializeSpielEvents();
-
 renderAll();

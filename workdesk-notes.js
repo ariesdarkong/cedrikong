@@ -1,278 +1,163 @@
 
 /* =========================================
-   WORKDESK NOTES SYSTEM
-   Standalone Notes Manager
-   ========================================= */
+   WORKDESK NOTES
+   Create, Edit, Delete, Search & Reorder
+========================================= */
 
 (() => {
-    "use strict";
+    'use strict';
 
-    const STORAGE_KEY = "workdesk_notes_v1";
+    const NOTES_STORAGE_KEY = 'workdesk_notes_v1';
 
-    let notes = [];
+    let notes = loadNotes();
+    let draggedNoteId = null;
 
-    // =========================================
-    // LOAD AND SAVE NOTES
-    // =========================================
+    /* =====================================
+       LOAD AND SAVE
+    ===================================== */
 
     function loadNotes() {
         try {
-            const saved = localStorage.getItem(STORAGE_KEY);
-            notes = saved ? JSON.parse(saved) : [];
+            const saved = JSON.parse(
+                localStorage.getItem(NOTES_STORAGE_KEY)
+            );
 
-            if (!Array.isArray(notes)) {
-                notes = [];
-            }
+            return Array.isArray(saved) ? saved : [];
         } catch (error) {
-            console.error("Error loading notes:", error);
-            notes = [];
+            console.error('Notes loading error:', error);
+            return [];
         }
     }
 
     function saveNotes() {
         try {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(notes));
+            localStorage.setItem(
+                NOTES_STORAGE_KEY,
+                JSON.stringify(notes)
+            );
+
             renderNotes();
-            showNoteToast("Note saved successfully!");
+
+            if (typeof toast === 'function') {
+                toast('Notes saved ✓');
+            }
         } catch (error) {
-            console.error("Error saving notes:", error);
-            showNoteToast("Unable to save note.");
+            console.error('Notes saving error:', error);
+
+            if (typeof toast === 'function') {
+                toast('Could not save notes');
+            }
         }
     }
 
-    // =========================================
-    // HELPERS
-    // =========================================
+    /* =====================================
+       HELPERS
+    ===================================== */
 
-    function createNoteId() {
-        return Date.now().toString(36) +
-            Math.random().toString(36).substring(2, 9);
-    }
-
-    function escapeHTML(value) {
-        return String(value ?? "").replace(/[&<>"']/g, char => ({
-            "&": "&amp;",
-            "<": "&lt;",
-            ">": "&gt;",
-            '"': "&quot;",
-            "'": "&#39;"
+    function escapeNote(value = '') {
+        return String(value).replace(/[&<>"']/g, char => ({
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#39;'
         })[char]);
     }
 
-    function showNoteToast(message) {
-        const toast = document.getElementById("toast");
-
-        if (toast) {
-            toast.textContent = message;
-            toast.classList.add("show");
-
-            setTimeout(() => {
-                toast.classList.remove("show");
-            }, 2500);
-        } else {
-            console.log(message);
-        }
+    function noteId() {
+        return Date.now().toString(36) +
+            Math.random().toString(36).slice(2, 8);
     }
 
-    // =========================================
-    // OPEN NOTE MODAL
-    // =========================================
+    /* =====================================
+       NOTES NAVIGATION
+    ===================================== */
 
-    function openNoteModal(id = null) {
+    function bindNotesNavigation() {
+        const nav = document.querySelector('.nav');
 
-        const existingNote = notes.find(note => note.id === id);
+        if (!nav) return;
 
-        const note = existingNote || {
-            title: "",
-            content: ""
-        };
+        let button = document.getElementById('notesNavButton');
 
-        const backdrop = document.getElementById("modalBackdrop");
-        const modalTitle = document.getElementById("modalTitle");
-        const modalBody = document.getElementById("modalBody");
-        const saveButton = document.getElementById("modalSave");
+        if (!button) {
+            button = document.createElement('button');
+            button.type = 'button';
+            button.id = 'notesNavButton';
+            button.dataset.page = 'notes';
+            button.textContent = '📝 Notes';
 
-        if (!backdrop || !modalTitle || !modalBody || !saveButton) {
-            console.error("Notes modal elements are missing.");
-            alert("The Notes modal could not be found. Please check your HTML.");
+            nav.appendChild(button);
+        }
+
+        if (button.dataset.notesBound === 'true') return;
+
+        button.dataset.notesBound = 'true';
+
+        button.addEventListener('click', () => {
+            if (typeof goPage === 'function') {
+                goPage('notes');
+            } else {
+                document.querySelectorAll('.page').forEach(page => {
+                    page.classList.remove('active');
+                });
+
+                document.getElementById('page-notes')
+                    ?.classList.add('active');
+            }
+
+            renderNotes();
+        });
+    }
+
+    /* =====================================
+       SEARCH NOTES
+    ===================================== */
+
+    function bindSearch() {
+        const search = document.getElementById('notesSearch');
+
+        if (!search || search.dataset.notesSearchBound === 'true') {
             return;
         }
 
-        // Set modal heading
-        modalTitle.textContent = id ? "Edit Note" : "Create New Note";
+        search.dataset.notesSearchBound = 'true';
 
-        // Create modal content
-        modalBody.innerHTML = `
-            <div class="form-grid">
-
-                <div class="field">
-                    <label for="noteTitle">Note Title *</label>
-
-                    <input
-                        type="text"
-                        id="noteTitle"
-                        maxlength="120"
-                        placeholder="Enter your note title..."
-                        value="${escapeHTML(note.title)}"
-                        required
-                    >
-                </div>
-
-                <div class="field">
-                    <label for="noteContent">Note Details</label>
-
-                    <textarea
-                        id="noteContent"
-                        rows="10"
-                        placeholder="Write your notes here..."
-                    >${escapeHTML(note.content)}</textarea>
-                </div>
-
-            </div>
-        `;
-
-        // Display modal
-        backdrop.classList.add("show");
-
-        // Save button action
-        saveButton.onclick = function () {
-
-            const titleInput = document.getElementById("noteTitle");
-            const contentInput = document.getElementById("noteContent");
-
-            const title = titleInput.value.trim();
-            const content = contentInput.value;
-
-            if (!title) {
-                alert("Please enter a note title.");
-                titleInput.focus();
-                return;
-            }
-
-            const now = Date.now();
-
-            if (id) {
-
-                // UPDATE EXISTING NOTE
-                notes = notes.map(item => {
-                    if (item.id === id) {
-                        return {
-                            ...item,
-                            title: title,
-                            content: content,
-                            updated: now
-                        };
-                    }
-
-                    return item;
-                });
-
-            } else {
-
-                // CREATE NEW NOTE
-                notes.unshift({
-                    id: createNoteId(),
-                    title: title,
-                    content: content,
-                    created: now,
-                    updated: now
-                });
-
-            }
-
-            closeNoteModal();
-            saveNotes();
-        };
-
-        // Focus title field
-        setTimeout(() => {
-            document.getElementById("noteTitle")?.focus();
-        }, 50);
+        search.addEventListener('input', renderNotes);
     }
 
-    // =========================================
-    // CLOSE NOTE MODAL
-    // =========================================
-
-    function closeNoteModal() {
-        const backdrop = document.getElementById("modalBackdrop");
-
-        if (backdrop) {
-            backdrop.classList.remove("show");
-        }
-    }
-
-    // =========================================
-    // EDIT NOTE
-    // =========================================
-
-    function editNote(id) {
-        openNoteModal(id);
-    }
-
-    // =========================================
-    // DELETE NOTE
-    // =========================================
-
-    function deleteNote(id) {
-
-        const note = notes.find(item => item.id === id);
-
-        if (!note) return;
-
-        const confirmed = confirm(
-            `Are you sure you want to delete "${note.title}"?`
-        );
-
-        if (!confirmed) return;
-
-        notes = notes.filter(item => item.id !== id);
-
-        saveNotes();
-
-        showNoteToast("Note deleted successfully!");
-    }
-
-    // =========================================
-    // DISPLAY NOTES
-    // =========================================
+    /* =====================================
+       DISPLAY NOTES
+    ===================================== */
 
     function renderNotes() {
-
-        const grid = document.getElementById("notesGrid");
-        const count = document.getElementById("notesCount");
-        const searchInput = document.getElementById("notesSearch");
+        const grid = document.getElementById('notesGrid');
 
         if (!grid) return;
 
-        const search = searchInput
-            ? searchInput.value.trim().toLowerCase()
-            : "";
+        const search = (
+            document.getElementById('notesSearch')?.value || ''
+        ).trim().toLowerCase();
 
-        const filteredNotes = notes.filter(note => {
-            const title = (note.title || "").toLowerCase();
-            const content = (note.content || "").toLowerCase();
+        const filtered = notes.filter(note =>
+            `${note.title || ''} ${note.content || ''}`
+                .toLowerCase()
+                .includes(search)
+        );
 
-            return title.includes(search) || content.includes(search);
-        });
+        const count = document.getElementById('notesCount');
 
-        // Update note count
         if (count) {
             count.textContent =
-                `${filteredNotes.length} ${
-                    filteredNotes.length === 1 ? "note" : "notes"
-                }`;
+                `${filtered.length} ${filtered.length === 1 ? 'note' : 'notes'}`;
         }
 
-        // Empty state
-        if (filteredNotes.length === 0) {
-
+        if (!filtered.length) {
             grid.innerHTML = `
                 <div class="empty">
-                    ${
-                        search
-                            ? "No notes match your search."
-                            : "No notes yet. Click + New Note to create your first note."
+                    ${search
+                        ? 'No notes match your search.'
+                        : 'No notes yet. Click “New note” to create one.'
                     }
                 </div>
             `;
@@ -280,195 +165,325 @@
             return;
         }
 
-        // Display note cards
-        grid.innerHTML = filteredNotes.map(note => {
-
+        grid.innerHTML = filtered.map(note => {
             const updated = note.updated
                 ? new Date(note.updated).toLocaleString()
-                : "Recently saved";
+                : 'Saved note';
 
             return `
-                <article class="info-card note-card">
+                <article
+                    class="info-card note-card"
+                    data-note-card="${escapeNote(note.id)}"
+                    draggable="${search ? 'false' : 'true'}"
+                >
 
                     <div class="card-title-row">
                         <div class="card-title">
-                            ${escapeHTML(note.title || "Untitled Note")}
+                            ${escapeNote(note.title || 'Untitled note')}
                         </div>
 
                         <span class="tag">Note</span>
                     </div>
 
                     <div class="note-updated">
-                        Updated: ${escapeHTML(updated)}
+                        Updated: ${escapeNote(updated)}
                     </div>
 
-                    <div class="card-content note-content">${escapeHTML(note.content || "")}</div>
+                    <div class="card-content note-content">
+                        ${escapeNote(note.content || '')}
+                    </div>
 
                     <div class="card-footer">
-
                         <button
                             type="button"
-                            class="note-edit-btn"
-                            data-action="edit"
-                            data-id="${escapeHTML(note.id)}"
-                        >
+                            onclick="editNote('${escapeNote(note.id)}')">
                             Edit
                         </button>
 
                         <button
                             type="button"
                             class="danger"
-                            data-action="delete"
-                            data-id="${escapeHTML(note.id)}"
-                        >
+                            onclick="deleteNote('${escapeNote(note.id)}')">
                             Delete
                         </button>
-
                     </div>
 
                 </article>
             `;
-
-        }).join("");
+        }).join('');
     }
 
-    // =========================================
-    // NOTES CARD BUTTON EVENTS
-    // =========================================
+    /* =====================================
+       DRAG & DROP NOTES
+    ===================================== */
 
-    function bindNoteCardActions() {
+    function initializeNotesDragDrop() {
+        const grid = document.getElementById('notesGrid');
 
-        const grid = document.getElementById("notesGrid");
-
-        if (!grid || grid.dataset.notesActionsBound === "true") {
+        if (!grid || grid.dataset.notesDragBound === 'true') {
             return;
         }
 
-        grid.dataset.notesActionsBound = "true";
+        grid.dataset.notesDragBound = 'true';
 
-        grid.addEventListener("click", function(event) {
+        let suppressClick = false;
 
-            const button = event.target.closest("button[data-action]");
+        grid.addEventListener('dragstart', event => {
+            const card = event.target.closest('[data-note-card]');
 
-            if (!button) return;
+            if (!card) return;
 
-            const id = button.dataset.id;
-            const action = button.dataset.action;
+            const search = (
+                document.getElementById('notesSearch')?.value || ''
+            ).trim();
 
-            if (action === "edit") {
-                editNote(id);
+            if (search) {
+                event.preventDefault();
+                return;
             }
 
-            if (action === "delete") {
-                deleteNote(id);
-            }
-        });
-    }
+            draggedNoteId = card.dataset.noteCard;
 
-    // =========================================
-    // SEARCH NOTES
-    // =========================================
+            card.classList.add('dragging');
 
-    function bindNoteSearch() {
+            suppressClick = true;
 
-        const searchInput = document.getElementById("notesSearch");
-
-        if (!searchInput || searchInput.dataset.notesSearchBound === "true") {
-            return;
-        }
-
-        searchInput.dataset.notesSearchBound = "true";
-
-        searchInput.addEventListener("input", renderNotes);
-    }
-
-    // =========================================
-    // NOTES NAVIGATION
-    // =========================================
-
-    function bindNotesNavigation() {
-
-        const notesButton = document.getElementById("notesNavButton");
-
-        if (!notesButton || notesButton.dataset.notesNavigationBound === "true") {
-            return;
-        }
-
-        notesButton.dataset.notesNavigationBound = "true";
-
-        notesButton.addEventListener("click", function() {
-
-            if (typeof window.goPage === "function") {
-                window.goPage("notes");
-            } else {
-                document.querySelectorAll(".page").forEach(page => {
-                    page.classList.remove("active");
-                });
-
-                document.getElementById("page-notes")?.classList.add("active");
-            }
-
-            renderNotes();
-        });
-    }
-
-    // =========================================
-    // MODAL BACKDROP CLICK
-    // =========================================
-
-    function bindModalBackdrop() {
-
-        const backdrop = document.getElementById("modalBackdrop");
-
-        if (!backdrop || backdrop.dataset.notesBackdropBound === "true") {
-            return;
-        }
-
-        backdrop.dataset.notesBackdropBound = "true";
-
-        backdrop.addEventListener("click", function(event) {
-            if (event.target === backdrop) {
-                closeNoteModal();
+            if (event.dataTransfer) {
+                event.dataTransfer.effectAllowed = 'move';
+                event.dataTransfer.setData('text/plain', draggedNoteId);
             }
         });
+
+        grid.addEventListener('dragover', event => {
+            if (!draggedNoteId) return;
+
+            event.preventDefault();
+
+            if (event.dataTransfer) {
+                event.dataTransfer.dropEffect = 'move';
+            }
+        });
+
+        grid.addEventListener('drop', event => {
+            if (!draggedNoteId) return;
+
+            event.preventDefault();
+
+            const target = event.target.closest('[data-note-card]');
+
+            if (!target) return;
+
+            const targetId = target.dataset.noteCard;
+
+            if (targetId === draggedNoteId) return;
+
+            const visibleNotes = notes.filter(note =>
+                grid.querySelector(`[data-note-card="${CSS.escape(note.id)}"]`)
+            );
+
+            const fromIndex = visibleNotes.findIndex(
+                note => note.id === draggedNoteId
+            );
+
+            const toIndex = visibleNotes.findIndex(
+                note => note.id === targetId
+            );
+
+            if (fromIndex < 0 || toIndex < 0) return;
+
+            // Reorder the visible notes.
+            const reordered = [...visibleNotes];
+
+            const movedNote = reordered.splice(fromIndex, 1)[0];
+
+            reordered.splice(toIndex, 0, movedNote);
+
+            // Keep hidden notes in their existing positions.
+            let visibleIndex = 0;
+
+            notes = notes.map(note => {
+                const isVisible = visibleNotes.some(
+                    visible => visible.id === note.id
+                );
+
+                if (!isVisible) return note;
+
+                return reordered[visibleIndex++];
+            });
+
+            draggedNoteId = null;
+
+            saveNotes();
+        });
+
+        grid.addEventListener('dragend', () => {
+            grid.querySelectorAll('.dragging').forEach(card => {
+                card.classList.remove('dragging');
+            });
+
+            draggedNoteId = null;
+
+            setTimeout(() => {
+                suppressClick = false;
+            }, 100);
+        });
+
+        grid.addEventListener('click', event => {
+            if (!suppressClick) return;
+
+            event.preventDefault();
+            event.stopPropagation();
+
+            suppressClick = false;
+        }, true);
     }
 
-    // =========================================
-    // INITIALIZE NOTES
-    // =========================================
+    /* =====================================
+       CREATE / EDIT NOTE
+    ===================================== */
 
-    function initNotes() {
+    function openNoteModal(id = null) {
+        const existing = notes.find(note => note.id === id);
 
-        loadNotes();
+        const note = existing || {
+            title: '',
+            content: ''
+        };
 
-        bindNoteCardActions();
-        bindNoteSearch();
-        bindNotesNavigation();
-        bindModalBackdrop();
+        if (typeof showModal !== 'function') {
+            console.error('WorkDesk showModal() was not found.');
+            return;
+        }
 
-        renderNotes();
+        const body = `
+            <div class="form-grid">
 
-        console.log("WorkDesk Notes loaded successfully.");
+                <div class="field">
+                    <label for="noteTitle">Note title *</label>
+
+                    <input
+                        id="noteTitle"
+                        maxlength="120"
+                        value="${escapeNote(note.title)}"
+                        placeholder="e.g. Follow-up reminders"
+                        required
+                    >
+                </div>
+
+                <div class="field">
+                    <label for="noteContent">Note details</label>
+
+                    <textarea
+                        id="noteContent"
+                        rows="10"
+                        placeholder="Write your note here..."
+                    >${escapeNote(note.content)}</textarea>
+                </div>
+
+            </div>
+        `;
+
+        showModal(
+            id ? 'Edit note' : 'Create a note',
+            body,
+            () => {
+                const title = document.getElementById('noteTitle')
+                    .value.trim();
+
+                const content = document.getElementById('noteContent')
+                    .value;
+
+                if (!title) {
+                    if (typeof toast === 'function') {
+                        toast('Please enter a note title');
+                    }
+
+                    document.getElementById('noteTitle').focus();
+                    return;
+                }
+
+                const now = Date.now();
+
+                if (id) {
+                    notes = notes.map(item =>
+                        item.id === id
+                            ? {
+                                ...item,
+                                title,
+                                content,
+                                updated: now
+                            }
+                            : item
+                    );
+                } else {
+                    notes.unshift({
+                        id: noteId(),
+                        title,
+                        content,
+                        created: now,
+                        updated: now
+                    });
+                }
+
+                if (typeof closeModal === 'function') {
+                    closeModal();
+                }
+
+                saveNotes();
+            }
+        );
     }
 
-    // =========================================
-    // MAKE FUNCTIONS AVAILABLE TO HTML
-    // =========================================
+    function editNote(id) {
+        openNoteModal(id);
+    }
+
+    /* =====================================
+       DELETE NOTE
+    ===================================== */
+
+    function deleteNote(id) {
+        const note = notes.find(item => item.id === id);
+
+        if (!note) return;
+
+        if (confirm(`Delete the note "${note.title}"?`)) {
+            notes = notes.filter(item => item.id !== id);
+
+            saveNotes();
+
+            if (typeof toast === 'function') {
+                toast('Note deleted');
+            }
+        }
+    }
+
+    /* =====================================
+       EXPOSE FUNCTIONS
+    ===================================== */
 
     window.openNoteModal = openNoteModal;
     window.editNote = editNote;
     window.deleteNote = deleteNote;
     window.renderNotes = renderNotes;
-    window.closeNoteModal = closeNoteModal;
 
-    // =========================================
-    // START NOTES
-    // =========================================
+    /* =====================================
+       INITIALIZE
+    ===================================== */
 
-    if (document.readyState === "loading") {
-        document.addEventListener("DOMContentLoaded", initNotes);
+    function init() {
+        bindNotesNavigation();
+        bindSearch();
+        initializeNotesDragDrop();
+        renderNotes();
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init, {
+            once: true
+        });
     } else {
-        initNotes();
+        init();
     }
 
 })();

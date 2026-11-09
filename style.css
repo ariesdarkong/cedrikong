@@ -854,21 +854,27 @@ main {
 /* EDIT BUTTON */
 
 .spiel-edit-btn {
-    position: absolute;
-    top: 14px;
-    right: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 32px;
+    height: 32px;
+    padding: 0;
 
     border: none;
-    background: transparent;
+    border-radius: 8px;
 
+    background: transparent;
     color: var(--muted);
-    font-size: 21px;
 
     cursor: pointer;
-    padding: 3px;
+    font-size: 16px;
+    transition: 0.2s ease;
 }
 
 .spiel-edit-btn:hover {
+    background: rgba(124, 156, 255, 0.15);
     color: var(--accent);
 }
 
@@ -946,6 +952,77 @@ main {
 }
 .spiel-card h3,
 .spiel-card .spiel-title {
+    text-align: center;
+    width: 100%;
+}
+/* Spiel drag and drop */
+.spiel-card {
+    cursor: grab;
+    transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+.spiel-card:active {
+    cursor: grabbing;
+}
+
+.spiel-card.dragging {
+    opacity: 0.4;
+    transform: scale(0.95);
+}
+/* =========================================
+   SPIEL EDIT BUTTON - TOP RIGHT
+========================================= */
+
+.spiel-card {
+    position: relative;
+}
+
+.spiel-actions {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    margin: 0;
+    z-index: 2;
+}
+
+.spiel-edit-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: none;
+    border-radius: 7px;
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+}
+
+.spiel-edit-btn:hover {
+    background: rgba(124, 156, 255, 0.15);
+    color: var(--accent);
+}
+
+.spiel-card-content {
+    padding-right: 30px;
+}
+/* Center Spiel Title */
+.spiel-card {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    text-align: center;
+}
+
+.spiel-card-content {
+    width: 100%;
+    padding: 0 25px;
+    text-align: center;
+}
+
+.spiel-title {
     text-align: center;
     width: 100%;
 }

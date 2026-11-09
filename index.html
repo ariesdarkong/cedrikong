@@ -1,153 +1,524 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>WorkDesk</title>
-<link rel="stylesheet" href="style.css">
-<link rel="stylesheet" href="workdesk-notes.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>WorkDesk</title>
+
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="workdesk-notes.css">
 </head>
+
 <body>
+
 <div class="app">
-<aside class="sidebar">
-  <div class="logo"><span class="logo-icon">W</span><span id="brandName">WorkDesk</span></div>
-<nav class="nav">
-    <button class="active" data-page="dashboard">▦ Dashboard</button>
-    <button data-page="links">↗ Quick Links</button>
-    <button data-page="cards">▤ Work Cards</button>
-    <button data-page="notes">📝 Notes</button>
-    <button data-page="settings">⚙ Settings & Backup</button>
-        
-</nav>
-  <div class="side-note"><strong>Local-first workspace</strong><br><br>Your links and cards are saved automatically in this browser using local storage. Export backups regularly.</div>
-</aside>
-<main>
-  <div class="topbar">
-    <div><h1 id="welcomeTitle">Good day, welcome back.</h1><div class="sub">Your personal workspace, organized in one place.</div></div>
-   
-  </div>
 
-  
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
 
-  <section class="page active" id="page-dashboard">
-    <div class="stats">
-      <div class="stat-card"><div class="stat-label">Quick links</div><div class="stat-value" id="linkCount">0</div></div>
-      <div class="stat-card"><div class="stat-label">Saved work cards</div><div class="stat-value" id="cardCount">0</div></div>
-      <div class="stat-card"><div class="stat-label">Storage</div><div class="stat-value" style="font-size:19px">Auto-save <span style="color:#5eead4">●</span></div></div>
-    </div>
-      <!-- MY SPIELS SECTION -->
-<section class="spiels-section">
-
-    <div class="spiels-header">
-        <div>
-            <h2>My Spiels</h2>
+        <div class="logo">
+            <span class="logo-icon">W</span>
+            <span id="brandName">WorkDesk</span>
         </div>
 
-        <button
-            type="button"
-            class="primary"
-            onclick="openSpielModal()"
-        >
-            + Add spiel
-        </button>
-    </div>
+        <nav class="nav">
+            <button class="active" data-page="dashboard">▦ Dashboard</button>
+            <button data-page="links">↗ Quick Links</button>
+            <button data-page="cards">▤ Work Cards</button>
+            <button data-page="notes">📝 Notes</button>
+            <button data-page="settings">⚙ Settings & Backup</button>
+        </nav>
 
-    <div id="spielsGrid" class="spiels-grid"></div>
-
-</section>
-    <div class="section-head"><div><h2>Quick links</h2><p>Click a link to open it in a new browser tab.</p></div><button onclick="openLinkModal()">＋ Add link</button></div>
-    <div class="grid" id="dashboardLinks"></div>
-    <div class="section-head"><div><h2>Recent work cards</h2><p>Notes, merchant details, procedures, and other work information.</p></div><button onclick="openCardModal()">＋ Create card</button></div>
-    <div class="info-grid" id="dashboardCards"></div>
-  </section>
-
-  
-
-  <section class="page" id="page-links">
-    <div class="section-head"><div><h2>Quick links</h2><p>Modify, delete, or add as many shortcuts as you need.</p></div><button class="primary" onclick="openLinkModal()">＋ Add link</button></div>
-    <div class="toolbar"><input id="linkSearch" placeholder="Search links…" oninput="renderLinks()" style="margin: 5px;"></div>
-    <div class="grid" id="allLinks" style="margin-top:14px"></div>
-  </section>
-
-
-
-  <section class="page" id="page-cards">
-    <div class="section-head"><div><h2>Work cards</h2><p>Keep reusable notes, merchant details, SOPs, and snippets.</p></div><button class="primary" onclick="openCardModal()">＋ New card</button></div>
-    <div class="toolbar"><input id="cardSearch" placeholder="Search cards…" oninput="renderCards()"><select id="cardCategory" onchange="renderCards()" style="max-width:190px"><option value="">All categories</option></select></div>
-    <div class="info-grid" id="allCards" style="margin-top:14px"></div>
-  </section>
-<section class="page" id="page-notes">
-
-    <div class="section-head notes-section-head">
-        <div>
-            <h2>My Notes</h2>
-            <p>Keep your reminders, ideas, and important information in one place.</p>
+        <div class="side-note">
+            <strong>Local-first workspace</strong>
+            <br><br>
+            Your links and cards are saved automatically in this
+            browser using local storage. Export backups regularly.
         </div>
 
-        <button
-            class="primary"
-            type="button"
-            onclick="openNoteModal()"
-        >
-            ＋ New note
-        </button>
-    </div>
+    </aside>
 
-    <div class="notes-toolbar" style="margin: 5px;">
-        <input
-            id="notesSearch"
-            type="search"
-            placeholder="Search your notes..."
-        >
 
-        <span id="notesCount" style='margin-top: 5px;'>0 notes</span>
-    </div>
+    <!-- MAIN CONTENT -->
+    <main>
 
-    <div id="notesGrid" class="info-grid notes-grid"></div>
+        <!-- =================================
+             DASHBOARD
+        ================================== -->
 
-</section>
+        <section class="page active" id="page-dashboard">
 
-  <section class="page" id="page-settings">
-    <div class="section-head"><div><h2>Settings & backup</h2><p>Customize your dashboard and manage your local data.</p></div></div>
-    <div class="settings-box"><h3>Workspace appearance</h3><div class="form-grid">
-      <div class="field"><label>Workspace name</label><input id="settingBrand" placeholder="WorkDesk"></div>
-      <div class="field"><label>Welcome message</label><input id="settingWelcome" placeholder="Good day, welcome back."></div>
-      <button class="primary" onclick="saveSettings()">Save settings</button>
-    </div></div>
-    <div class="settings-box"><h3>Backup / restore</h3><p class="muted">Export a JSON backup of your links, cards, and settings. Import it to restore or move your workspace.</p><div class="toolbar"><button class="primary" onclick="exportData()">Export backup</button><label><button onclick="document.getElementById('importFile').click()">Import backup</button><input type="file" id="importFile" accept="application/json,.json" hidden onchange="importData(event)"></label></div></div>
-    <div class="settings-box"><h3>Data management</h3><p class="muted">Everything is stored in this browser on this device. Clearing browser data may erase it. Local storage is not synced between devices or browsers.</p><button class="danger" onclick="clearData()">Reset all dashboard data</button></div>
-  </section>
-</main>
+            <!-- DASHBOARD WELCOME MESSAGE -->
+            <div class="topbar">
+                <div>
+                    <h1 id="welcomeTitle">Good day, welcome back.</h1>
+                    <div class="sub">
+                        Your personal workspace, organized in one place.
+                    </div>
+                </div>
+            </div>
+
+
+            <!-- STATISTICS -->
+            <div class="stats">
+
+                <div class="stat-card">
+                    <div class="stat-label">Quick links</div>
+                    <div class="stat-value" id="linkCount">0</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-label">Saved work cards</div>
+                    <div class="stat-value" id="cardCount">0</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-label">Storage</div>
+                    <div class="stat-value" style="font-size:19px">
+                        Auto-save
+                        <span style="color:#5eead4">●</span>
+                    </div>
+                </div>
+
+            </div>
+
+
+            <!-- MY SPIELS -->
+            <section class="spiels-section">
+
+                <div class="spiels-header">
+                    <div>
+                        <h2>My Spiels</h2>
+                    </div>
+
+                    <button
+                        type="button"
+                        class="primary"
+                        onclick="openSpielModal()">
+                        + Add spiel
+                    </button>
+                </div>
+
+                <div id="spielsGrid" class="spiels-grid"></div>
+
+            </section>
+
+
+            <!-- QUICK LINKS -->
+            <div class="section-head">
+
+                <div>
+                    <h2>Quick links</h2>
+                    <p>Click a link to open it in a new browser tab.</p>
+                </div>
+
+                <button onclick="openLinkModal()">
+                    + Add link
+                </button>
+
+            </div>
+
+            <div class="grid" id="dashboardLinks"></div>
+
+
+            <!-- RECENT WORK CARDS -->
+            <div class="section-head">
+
+                <div>
+                    <h2>Recent work cards</h2>
+                    <p>
+                        Notes, merchant details, procedures,
+                        and other work information.
+                    </p>
+                </div>
+
+                <button onclick="openCardModal()">
+                    + Create card
+                </button>
+
+            </div>
+
+            <div class="info-grid" id="dashboardCards"></div>
+
+        </section>
+
+
+        <!-- =================================
+             QUICK LINKS
+        ================================== -->
+
+        <section class="page" id="page-links">
+
+            <div class="section-head">
+
+                <div>
+                    <h2>Quick links</h2>
+                    <p>
+                        Modify, delete, or add as many shortcuts as you need.
+                    </p>
+                </div>
+
+                <button
+                    class="primary"
+                    onclick="openLinkModal()">
+                    + Add link
+                </button>
+
+            </div>
+
+            <div class="toolbar">
+
+                <input
+                    id="linkSearch"
+                    placeholder="Search links..."
+                    oninput="renderLinks()"
+                    style="margin:5px;">
+
+            </div>
+
+            <div
+                class="grid"
+                id="allLinks"
+                style="margin-top:14px;">
+            </div>
+
+        </section>
+
+
+        <!-- =================================
+             WORK CARDS
+        ================================== -->
+
+        <section class="page" id="page-cards">
+
+            <div class="section-head">
+
+                <div>
+                    <h2>Work cards</h2>
+                    <p>
+                        Keep reusable notes, merchant details,
+                        SOPs, and snippets.
+                    </p>
+                </div>
+
+                <button
+                    class="primary"
+                    onclick="openCardModal()">
+                    + New card
+                </button>
+
+            </div>
+
+            <div class="toolbar">
+
+                <input
+                    id="cardSearch"
+                    placeholder="Search cards..."
+                    oninput="renderCards()">
+
+                <select
+                    id="cardCategory"
+                    onchange="renderCards()"
+                    style="max-width:190px;">
+
+                    <option value="">All categories</option>
+
+                </select>
+
+            </div>
+
+            <div
+                class="info-grid"
+                id="allCards"
+                style="margin-top:14px;">
+            </div>
+
+        </section>
+
+
+        <!-- =================================
+             NOTES
+        ================================== -->
+
+        <section class="page" id="page-notes">
+
+            <div class="notes-workspace">
+
+                <!-- LEFT SIDEBAR -->
+                <aside class="notes-sidebar">
+
+                    <div class="notes-sidebar-header">
+
+                        <div>
+                            <h2>My Notes</h2>
+                            <p id="notesCount">0 notes</p>
+                        </div>
+
+                        <div class="notes-header-actions">
+
+                            <button
+                                type="button"
+                                class="notes-delete-btn"
+                                id="notesDeleteBtn"
+                                onclick="deleteNote()"
+                                disabled
+                                title="Delete selected note">
+                                Delete
+                            </button>
+
+                            <button
+                                type="button"
+                                class="notes-add-btn"
+                                onclick="createNote()"
+                                title="Create new note">
+                                +
+                            </button>
+
+                        </div>
+
+                    </div>
+
+                    <!-- NOTES SEARCH -->
+                    <div class="notes-search-wrap">
+
+                        <input
+                            type="search"
+                            id="notesSearch"
+                            placeholder="Search notes..."
+                            autocomplete="off">
+
+                    </div>
+
+                    <!-- NOTES LIST -->
+                    <div
+                        id="notesList"
+                        class="notes-list">
+                    </div>
+
+                </aside>
+
+
+                <!-- RIGHT EDITOR -->
+                <section class="notes-editor">
+
+                    <!-- EMPTY STATE -->
+                    <div
+                        id="notesEditorEmpty"
+                        class="notes-editor-empty">
+
+                        <div class="notes-empty-icon">📝</div>
+
+                        <h3>Select a note</h3>
+
+                        <p>
+                            Choose a note from the list or click +
+                            to create one.
+                        </p>
+
+                    </div>
+
+                    <!-- NOTE CONTENT -->
+                    <div
+                        id="notesEditorContent"
+                        class="notes-editor-content"
+                        hidden>
+
+                        <div class="notes-editor-top"></div>
+
+                        <input
+                            type="text"
+                            id="noteTitle"
+                            class="notes-title-input"
+                            placeholder="Untitled note"
+                            maxlength="120">
+
+                        <div class="notes-editor-meta">
+                            <span id="noteUpdated">Not saved yet</span>
+                        </div>
+
+                        <textarea
+                            id="noteContent"
+                            class="notes-content-input"
+                            placeholder="Start writing your note here..."></textarea>
+
+                    </div>
+
+                </section>
+
+            </div>
+
+        </section>
+
+
+        <!-- =================================
+             SETTINGS & BACKUP
+        ================================== -->
+
+        <section class="page" id="page-settings">
+
+            <div class="section-head">
+
+                <div>
+                    <h2>Settings & backup</h2>
+                    <p>
+                        Customize your dashboard and manage your local data.
+                    </p>
+                </div>
+
+            </div>
+
+
+            <!-- WORKSPACE APPEARANCE -->
+            <div class="settings-box">
+
+                <h3>Workspace appearance</h3>
+
+                <div class="form-grid">
+
+                    <div class="field">
+
+                        <label>Workspace name</label>
+
+                        <input
+                            id="settingBrand"
+                            placeholder="WorkDesk">
+
+                    </div>
+
+                    <div class="field">
+
+                        <label>Welcome message</label>
+
+                        <input
+                            id="settingWelcome"
+                            placeholder="Good day, welcome back.">
+
+                    </div>
+
+                    <button
+                        class="primary"
+                        onclick="saveSettings()">
+                        Save settings
+                    </button>
+
+                </div>
+
+            </div>
+
+
+            <!-- BACKUP AND RESTORE -->
+            <div class="settings-box">
+
+                <h3>Backup / restore</h3>
+
+                <p class="muted">
+                    Export a JSON backup of your links, cards,
+                    and settings. Import it to restore or move
+                    your workspace.
+                </p>
+
+                <div class="toolbar">
+
+                    <button
+                        class="primary"
+                        onclick="exportData()">
+                        Export backup
+                    </button>
+
+                    <label>
+
+                        <button
+                            type="button"
+                            onclick="document.getElementById('importFile').click()">
+                            Import backup
+                        </button>
+
+                        <input
+                            type="file"
+                            id="importFile"
+                            accept="application/json,.json"
+                            hidden
+                            onchange="importData(event)">
+
+                    </label>
+
+                </div>
+
+            </div>
+
+
+            <!-- DATA MANAGEMENT -->
+            <div class="settings-box">
+
+                <h3>Data management</h3>
+
+                <p class="muted">
+                    Everything is stored in this browser on this device.
+                    Clearing browser data may erase it.
+                    Local storage is not synced between devices or browsers.
+                </p>
+
+                <button
+                    class="danger"
+                    onclick="clearData()">
+                    Reset all dashboard data
+                </button>
+
+            </div>
+
+        </section>
+
+    </main>
+
 </div>
-<div class="modal-backdrop" id="modalBackdrop">
+
+
+<!-- =================================
+     SHARED MODAL
+================================== -->
+
+<div
+    class="modal-backdrop"
+    id="modalBackdrop"
+    onclick="if(event.target===this)closeModal()">
 
     <div class="modal">
 
-        <h2 id="modalTitle">Create New Note</h2>
+        <h2 id="modalTitle">Edit item</h2>
 
         <div id="modalBody"></div>
 
         <div class="modal-actions">
-            <button type="button" onclick="closeNoteModal()">
+
+            <button
+                type="button"
+                onclick="closeModal()">
                 Cancel
             </button>
 
-            <button type="button" class="primary" id="modalSave">
+            <button
+                type="button"
+                class="primary"
+                id="modalSave">
                 Save
             </button>
+
         </div>
 
     </div>
 
 </div>
 
-<div class="modal-backdrop" id="modalBackdrop" onclick="if(event.target===this)closeModal()"><div class="modal"><h2 id="modalTitle">Edit item</h2><div id="modalBody"></div><div class="modal-actions"><button onclick="closeModal()">Cancel</button><button class="primary" id="modalSave">Save</button></div></div></div>
-<div class="toast" id="toast">Saved</div>
-<script src="script.js"></script>
-<script src="workdesk-notes.js"></script>
 
-<!-- SPIEL MODAL -->
-<div class="modal-backdrop" id="spielModalBackdrop">
+<!-- =================================
+     SPIEL MODAL
+================================== -->
+
+<div
+    class="modal-backdrop"
+    id="spielModalBackdrop">
 
     <div class="modal">
 
@@ -156,24 +527,26 @@
         <div class="form-grid">
 
             <div class="field">
+
                 <label for="spielTitle">Spiel Title *</label>
 
                 <input
                     type="text"
                     id="spielTitle"
                     placeholder="e.g. Welcome Message"
-                    maxlength="120"
-                >
+                    maxlength="120">
+
             </div>
 
             <div class="field">
+
                 <label for="spielContent">Spiel Content *</label>
 
                 <textarea
                     id="spielContent"
                     rows="10"
-                    placeholder="Write your customer support message here..."
-                ></textarea>
+                    placeholder="Write your customer support message here..."></textarea>
+
             </div>
 
         </div>
@@ -182,16 +555,14 @@
 
             <button
                 type="button"
-                onclick="closeSpielModal()"
-            >
+                onclick="closeSpielModal()">
                 Cancel
             </button>
 
             <button
                 type="button"
                 class="primary"
-                onclick="saveSpiel()"
-            >
+                onclick="saveSpiel()">
                 Save Spiel
             </button>
 
@@ -200,5 +571,15 @@
     </div>
 
 </div>
+
+
+<!-- TOAST MESSAGE -->
+<div class="toast" id="toast">Saved</div>
+
+
+<!-- JAVASCRIPT FILES -->
+<script src="script.js"></script>
+<script src="workdesk-notes.js"></script>
+
 </body>
 </html>

@@ -766,3 +766,186 @@ main {
     display: inline-block;
     margin: 5px;
 }
+/* =========================================
+   WORKDESK SPIELS LIBRARY
+========================================= */
+
+.spiels-section {
+    position: relative;
+    margin: 25px 0;
+    padding: 20px;
+
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+}
+
+/* SECTION HEADER */
+
+.spiels-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 15px;
+
+    margin-bottom: 20px;
+}
+
+.spiels-header h2 {
+    margin: 0 0 5px;
+}
+
+.spiels-header p {
+    margin: 0;
+    color: var(--muted);
+    font-size: 14px;
+}
+
+/* THREE CARDS PER ROW */
+
+.spiels-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+}
+
+/* SPIEL CARD */
+
+.spiel-card {
+    position: relative;
+
+    display: flex;
+    align-items: center;
+
+    min-width: 0;
+    min-height: 110px;
+
+    padding: 20px;
+    padding-right: 55px;
+
+    background: var(--panel2);
+    border: 1px solid var(--border);
+    border-radius: 15px;
+
+    cursor: pointer;
+    transition: 0.2s ease;
+}
+
+.spiel-card:hover {
+    border-color: var(--accent);
+    transform: translateY(-2px);
+}
+
+.spiel-card:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+}
+
+/* SPIEL TITLE */
+
+.spiel-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text);
+
+    overflow-wrap: anywhere;
+}
+
+/* EDIT BUTTON */
+
+.spiel-edit-btn {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+
+    border: none;
+    background: transparent;
+
+    color: var(--muted);
+    font-size: 21px;
+
+    cursor: pointer;
+    padding: 3px;
+}
+
+.spiel-edit-btn:hover {
+    color: var(--accent);
+}
+
+/* EMPTY STATE */
+
+.spiel-empty {
+    grid-column: 1 / -1;
+
+    padding: 30px 15px;
+
+    text-align: center;
+    color: var(--muted);
+
+    background: var(--panel2);
+    border: 1px dashed var(--border);
+    border-radius: 12px;
+}
+
+/* RESPONSIVE */
+
+@media (max-width: 900px) {
+
+    .spiels-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+}
+
+@media (max-width: 600px) {
+
+    .spiels-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .spiels-header {
+        align-items: flex-start;
+    }
+
+}
+/* Smaller My Spiels cards - 3 columns */
+#spielsGrid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.spiel-card {
+    min-height: 100px;
+    padding: 10px;
+    border-radius: 10px;
+}
+
+.spiel-card h3,
+.spiel-card .spiel-title {
+    font-size: 14px;
+}
+
+.spiel-card p,
+.spiel-card .spiel-content {
+    font-size: 12px;
+    line-height: 1.4;
+}
+
+/* Responsive layout */
+@media (max-width: 900px) {
+    #spielsGrid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 600px) {
+    #spielsGrid {
+        grid-template-columns: 1fr;
+    }
+}
+.spiel-card h3,
+.spiel-card .spiel-title {
+    text-align: center;
+    width: 100%;
+}

@@ -1,7 +1,8 @@
 
 /* =========================================
    WORKDESK NOTES
-   Create, Edit, Delete, Search & Reorder
+   Two-Panel Notes Workspace
+   Create, Edit, Delete, Search & Auto-Save
 ========================================= */
 
 (() => {
@@ -10,7 +11,12 @@
     const NOTES_STORAGE_KEY = 'workdesk_notes_v1';
 
     let notes = loadNotes();
-    let draggedNoteId = null;
+    let selectedNoteId = null;
+    let saveTimer = null;
+
+    const titleInput = document.getElementById('noteTitle');
+    const contentInput = document.getElementById('noteContent');
+    const searchInput = document.getElementById('notesSearch');
 
     /* =====================================
        LOAD AND SAVE
@@ -29,30 +35,29 @@
         }
     }
 
-    function saveNotes() {
+    function persistNotes() {
         try {
             localStorage.setItem(
                 NOTES_STORAGE_KEY,
                 JSON.stringify(notes)
             );
 
-            renderNotes();
-
-            if (typeof toast === 'function') {
-                toast('Notes saved ✓');
-            }
+            return true;
         } catch (error) {
             console.error('Notes saving error:', error);
 
             if (typeof toast === 'function') {
                 toast('Could not save notes');
             }
+
+            return false;
         }
     }
 
-    /* =====================================
-       HELPERS
-    ===================================== */
+    function uid() {
+        return Date.now().toString(36) +
+            Math.random().toString(36).slice(2, 8);
+    }
 
     function escapeNote(value = '') {
         return String(value).replace(/[&<>"']/g, char => ({
@@ -64,87 +69,119 @@
         })[char]);
     }
 
-    function noteId() {
-        return Date.now().toString(36) +
-            Math.random().toString(36).slice(2, 8);
-    }
+    function formatDate(timestamp) {
+        if (!timestamp) return 'Saved note';
 
-    /* =====================================
-       NOTES NAVIGATION
-    ===================================== */
-
-    function bindNotesNavigation() {
-        const nav = document.querySelector('.nav');
-
-        if (!nav) return;
-
-        let button = document.getElementById('notesNavButton');
-
-        if (!button) {
-            button = document.createElement('button');
-            button.type = 'button';
-            button.id = 'notesNavButton';
- 
-
-            nav.appendChild(button);
-        }
-
-        if (button.dataset.notesBound === 'true') return;
-
-        button.dataset.notesBound = 'true';
-
-        button.addEventListener('click', () => {
-            if (typeof goPage === 'function') {
-                goPage('notes');
-            } else {
-                document.querySelectorAll('.page').forEach(page => {
-                    page.classList.remove('active');
-                });
-
-                document.getElementById('page-notes')
-                    ?.classList.add('active');
-            }
-
-            renderNotes();
+        return new Date(timestamp).toLocaleString([], {
+            month: 'short',
+            day: 'numeric',
+            hour: 'numeric',
+            minute: '2-digit'
         });
     }
 
     /* =====================================
-       SEARCH NOTES
+       UPDATE DELETE BUTTON
     ===================================== */
 
-    function bindSearch() {
-        const search = document.getElementById('notesSearch');
+    function updateDeleteButton() {
+        const button = document.getElementById('notesDeleteBtn');
 
-        if (!search || search.dataset.notesSearchBound === 'true') {
-            return;
+        if (button) {
+            button.disabled = !selectedNoteId;
         }
-
-        search.dataset.notesSearchBound = 'true';
-
-        search.addEventListener('input', renderNotes);
     }
 
     /* =====================================
-       DISPLAY NOTES
+       EDITOR VISIBILITY
     ===================================== */
 
-    function renderNotes() {
-        const grid = document.getElementById('notesGrid');
+    function showEditor() {
+        const empty = document.getElementById('notesEditorEmpty');
+        const editor = document.getElementById('notesEditorContent');
 
-        if (!grid) return;
+        if (empty) empty.hidden = true;
+        if (editor) editor.hidden = false;
+    }
 
-        const search = (
-            document.getElementById('notesSearch')?.value || ''
-        ).trim().toLowerCase();
+    function showEmptyEditor() {
+        const empty = document.getElementById('notesEditorEmpty');
+        const editor = document.getElementById('notesEditorContent');
 
-        const filtered = notes.filter(note =>
-            `${note.title || ''} ${note.content || ''}`
-                .toLowerCase()
-                .includes(search)
+        if (empty) empty.hidden = false;
+        if (editor) editor.hidden = true;
+    }
+
+    /* =====================================
+       SAVE CURRENT NOTE
+    ===================================== */
+
+    function saveCurrentNote() {
+        if (!selectedNoteId || !titleInput || !contentInput) {
+            return;
+        }
+
+        const note = notes.find(
+            item => item.id === selectedNoteId
         );
 
+        if (!note) return;
+
+        note.title = titleInput.value.trim() || 'Untitled note';
+        note.content = contentInput.value;
+        note.updated = Date.now();
+
+        if (persistNotes()) {
+            updateEditorStatus('Saved');
+            updateNoteDate(note.updated);
+            renderNotesList();
+        }
+    }
+
+    function scheduleSave() {
+        updateEditorStatus('Saving...');
+
+        clearTimeout(saveTimer);
+
+        saveTimer = setTimeout(() => {
+            saveCurrentNote();
+        }, 400);
+    }
+
+    function updateEditorStatus(message) {
+        const status = document.getElementById('notesEditorStatus');
+
+        if (status) {
+            status.textContent = message;
+        }
+    }
+
+    function updateNoteDate(timestamp) {
+        const date = document.getElementById('noteUpdated');
+
+        if (date) {
+            date.textContent = 'Last edited: ' + formatDate(timestamp);
+        }
+    }
+
+    /* =====================================
+       RENDER NOTES LIST
+    ===================================== */
+
+    function renderNotesList() {
+        const list = document.getElementById('notesList');
         const count = document.getElementById('notesCount');
+
+        if (!list) return;
+
+        const search = (searchInput?.value || '')
+            .trim()
+            .toLowerCase();
+
+        const filtered = notes.filter(note => {
+            const text = `${note.title || ''} ${note.content || ''}`;
+            return text.toLowerCase().includes(search);
+        });
 
         if (count) {
             count.textContent =
@@ -152,11 +189,11 @@
         }
 
         if (!filtered.length) {
-            grid.innerHTML = `
-                <div class="empty">
+            list.innerHTML = `
+                <div class="notes-list-empty">
                     ${search
                         ? 'No notes match your search.'
-                        : 'No notes yet. Click “New note” to create one.'
+                        : 'No notes yet. Click + to create your first note.'
                     }
                 </div>
             `;
@@ -164,318 +201,279 @@
             return;
         }
 
-        grid.innerHTML = filtered.map(note => {
-            const updated = note.updated
-                ? new Date(note.updated).toLocaleString()
-                : 'Saved note';
+        list.innerHTML = filtered.map(note => {
+            const preview = (note.content || '')
+                .replace(/\s+/g, ' ')
+                .trim();
 
             return `
-                <article
-                    class="info-card note-card"
-                    data-note-card="${escapeNote(note.id)}"
-                    draggable="${search ? 'false' : 'true'}"
-                >
+                <div
+                    class="notes-list-item ${note.id === selectedNoteId ? 'active' : ''}"
+                    data-note-id="${escapeNote(note.id)}"
+                    tabindex="0"
+                    role="button"
+                    aria-label="Open note ${escapeNote(note.title || 'Untitled note')}">
 
-                    <div class="card-title-row">
-                        <div class="card-title">
-                            ${escapeNote(note.title || 'Untitled note')}
-                        </div>
-
-                        <span class="tag">Note</span>
+                    <div class="notes-list-title">
+                        ${escapeNote(note.title || 'Untitled note')}
                     </div>
 
-                    <div class="note-updated">
-                        Updated: ${escapeNote(updated)}
+                    <div class="notes-list-preview">
+                        ${escapeNote(preview || 'No additional text')}
                     </div>
 
-                    <div class="card-content note-content">
-                        ${escapeNote(note.content || '')}
+                    <div class="notes-list-date">
+                        ${escapeNote(formatDate(note.updated || note.created))}
                     </div>
 
-                    <div class="card-footer">
-                        <button
-                            type="button"
-                            onclick="editNote('${escapeNote(note.id)}')">
-                            Edit
-                        </button>
-
-                        <button
-                            type="button"
-                            class="danger"
-                            onclick="deleteNote('${escapeNote(note.id)}')">
-                            Delete
-                        </button>
-                    </div>
-
-                </article>
+                </div>
             `;
         }).join('');
     }
 
     /* =====================================
-       DRAG & DROP NOTES
+       SELECT NOTE
     ===================================== */
 
-    function initializeNotesDragDrop() {
-        const grid = document.getElementById('notesGrid');
+    function selectNote(id) {
+        if (selectedNoteId === id) return;
 
-        if (!grid || grid.dataset.notesDragBound === 'true') {
-            return;
-        }
+        clearTimeout(saveTimer);
+        saveCurrentNote();
 
-        grid.dataset.notesDragBound = 'true';
+        const note = notes.find(item => item.id === id);
 
-        let suppressClick = false;
+        if (!note) return;
 
-        grid.addEventListener('dragstart', event => {
-            const card = event.target.closest('[data-note-card]');
+        selectedNoteId = id;
 
-            if (!card) return;
+        showEditor();
 
-            const search = (
-                document.getElementById('notesSearch')?.value || ''
-            ).trim();
+        titleInput.value = note.title || '';
+        contentInput.value = note.content || '';
 
-            if (search) {
-                event.preventDefault();
-                return;
-            }
+        updateEditorStatus('Saved');
+        updateNoteDate(note.updated || note.created);
 
-            draggedNoteId = card.dataset.noteCard;
-
-            card.classList.add('dragging');
-
-            suppressClick = true;
-
-            if (event.dataTransfer) {
-                event.dataTransfer.effectAllowed = 'move';
-                event.dataTransfer.setData('text/plain', draggedNoteId);
-            }
-        });
-
-        grid.addEventListener('dragover', event => {
-            if (!draggedNoteId) return;
-
-            event.preventDefault();
-
-            if (event.dataTransfer) {
-                event.dataTransfer.dropEffect = 'move';
-            }
-        });
-
-        grid.addEventListener('drop', event => {
-            if (!draggedNoteId) return;
-
-            event.preventDefault();
-
-            const target = event.target.closest('[data-note-card]');
-
-            if (!target) return;
-
-            const targetId = target.dataset.noteCard;
-
-            if (targetId === draggedNoteId) return;
-
-            const visibleNotes = notes.filter(note =>
-                grid.querySelector(`[data-note-card="${CSS.escape(note.id)}"]`)
-            );
-
-            const fromIndex = visibleNotes.findIndex(
-                note => note.id === draggedNoteId
-            );
-
-            const toIndex = visibleNotes.findIndex(
-                note => note.id === targetId
-            );
-
-            if (fromIndex < 0 || toIndex < 0) return;
-
-            // Reorder the visible notes.
-            const reordered = [...visibleNotes];
-
-            const movedNote = reordered.splice(fromIndex, 1)[0];
-
-            reordered.splice(toIndex, 0, movedNote);
-
-            // Keep hidden notes in their existing positions.
-            let visibleIndex = 0;
-
-            notes = notes.map(note => {
-                const isVisible = visibleNotes.some(
-                    visible => visible.id === note.id
-                );
-
-                if (!isVisible) return note;
-
-                return reordered[visibleIndex++];
-            });
-
-            draggedNoteId = null;
-
-            saveNotes();
-        });
-
-        grid.addEventListener('dragend', () => {
-            grid.querySelectorAll('.dragging').forEach(card => {
-                card.classList.remove('dragging');
-            });
-
-            draggedNoteId = null;
-
-            setTimeout(() => {
-                suppressClick = false;
-            }, 100);
-        });
-
-        grid.addEventListener('click', event => {
-            if (!suppressClick) return;
-
-            event.preventDefault();
-            event.stopPropagation();
-
-            suppressClick = false;
-        }, true);
+        renderNotesList();
+        updateDeleteButton();
     }
 
     /* =====================================
-       CREATE / EDIT NOTE
+       CREATE NOTE
     ===================================== */
 
-    function openNoteModal(id = null) {
-        const existing = notes.find(note => note.id === id);
+    function createNote() {
+        clearTimeout(saveTimer);
+        saveCurrentNote();
 
-        const note = existing || {
+        const now = Date.now();
+
+        const note = {
+            id: uid(),
             title: '',
-            content: ''
+            content: '',
+            created: now,
+            updated: now
         };
 
-        if (typeof showModal !== 'function') {
-            console.error('WorkDesk showModal() was not found.');
-            return;
-        }
+        notes.unshift(note);
+        selectedNoteId = note.id;
 
-        const body = `
-            <div class="form-grid">
+        persistNotes();
 
-                <div class="field">
-                    <label for="noteTitle">Note title *</label>
+        showEditor();
 
-                    <input
-                        id="noteTitle"
-                        maxlength="120"
-                        value="${escapeNote(note.title)}"
-                        placeholder="e.g. Follow-up reminders"
-                        required
-                    >
-                </div>
+        titleInput.value = '';
+        contentInput.value = '';
 
-                <div class="field">
-                    <label for="noteContent">Note details</label>
+        updateEditorStatus('New note');
+        updateNoteDate(now);
 
-                    <textarea
-                        id="noteContent"
-                        rows="10"
-                        placeholder="Write your note here..."
-                    >${escapeNote(note.content)}</textarea>
-                </div>
+        renderNotesList();
+        updateDeleteButton();
 
-            </div>
-        `;
-
-        showModal(
-            id ? 'Edit note' : 'Create a note',
-            body,
-            () => {
-                const title = document.getElementById('noteTitle')
-                    .value.trim();
-
-                const content = document.getElementById('noteContent')
-                    .value;
-
-                if (!title) {
-                    if (typeof toast === 'function') {
-                        toast('Please enter a note title');
-                    }
-
-                    document.getElementById('noteTitle').focus();
-                    return;
-                }
-
-                const now = Date.now();
-
-                if (id) {
-                    notes = notes.map(item =>
-                        item.id === id
-                            ? {
-                                ...item,
-                                title,
-                                content,
-                                updated: now
-                            }
-                            : item
-                    );
-                } else {
-                    notes.unshift({
-                        id: noteId(),
-                        title,
-                        content,
-                        created: now,
-                        updated: now
-                    });
-                }
-
-                if (typeof closeModal === 'function') {
-                    closeModal();
-                }
-
-                saveNotes();
-            }
-        );
-    }
-
-    function editNote(id) {
-        openNoteModal(id);
+        titleInput.focus();
     }
 
     /* =====================================
        DELETE NOTE
     ===================================== */
 
-    function deleteNote(id) {
-        const note = notes.find(item => item.id === id);
+    function deleteNote() {
+        if (!selectedNoteId) return;
+
+        const note = notes.find(
+            item => item.id === selectedNoteId
+        );
 
         if (!note) return;
 
-        if (confirm(`Delete the note "${note.title}"?`)) {
-            notes = notes.filter(item => item.id !== id);
+        const noteTitle = note.title || 'Untitled note';
 
-            saveNotes();
+        if (!confirm(`Delete "${noteTitle}"?`)) {
+            return;
+        }
 
-            if (typeof toast === 'function') {
-                toast('Note deleted');
-            }
+        clearTimeout(saveTimer);
+
+        notes = notes.filter(
+            item => item.id !== selectedNoteId
+        );
+
+        selectedNoteId = null;
+
+        persistNotes();
+
+        if (notes.length) {
+            selectedNoteId = notes[0].id;
+
+            const firstNote = notes[0];
+
+            showEditor();
+
+            titleInput.value = firstNote.title || '';
+            contentInput.value = firstNote.content || '';
+
+            updateEditorStatus('Saved');
+            updateNoteDate(firstNote.updated || firstNote.created);
+        } else {
+            titleInput.value = '';
+            contentInput.value = '';
+
+            showEmptyEditor();
+        }
+
+        renderNotesList();
+        updateDeleteButton();
+
+        if (typeof toast === 'function') {
+            toast('Note deleted');
         }
     }
 
     /* =====================================
-       EXPOSE FUNCTIONS
+       SEARCH
     ===================================== */
 
-    window.openNoteModal = openNoteModal;
-    window.editNote = editNote;
-    window.deleteNote = deleteNote;
-    window.renderNotes = renderNotes;
+    function bindSearch() {
+        if (!searchInput) return;
+
+        searchInput.addEventListener('input', renderNotesList);
+    }
+
+    /* =====================================
+       EDITOR EVENTS
+    ===================================== */
+
+    function bindEditor() {
+        if (titleInput) {
+            titleInput.addEventListener('input', scheduleSave);
+        }
+
+        if (contentInput) {
+            contentInput.addEventListener('input', scheduleSave);
+        }
+
+        [titleInput, contentInput].forEach(input => {
+            if (!input) return;
+
+            input.addEventListener('blur', () => {
+                clearTimeout(saveTimer);
+                saveCurrentNote();
+            });
+        });
+
+        document.querySelectorAll('.nav button').forEach(button => {
+            button.addEventListener('click', () => {
+                clearTimeout(saveTimer);
+                saveCurrentNote();
+            });
+        });
+
+        window.addEventListener('beforeunload', () => {
+            clearTimeout(saveTimer);
+            saveCurrentNote();
+        });
+    }
+
+    /* =====================================
+       NOTES LIST EVENTS
+    ===================================== */
+
+    function bindListEvents() {
+        const list = document.getElementById('notesList');
+
+        if (!list) return;
+
+        list.addEventListener('click', event => {
+            const item = event.target.closest('[data-note-id]');
+
+            if (item) {
+                selectNote(item.dataset.noteId);
+            }
+        });
+
+        list.addEventListener('keydown', event => {
+            if (event.key !== 'Enter' && event.key !== ' ') return;
+
+            const item = event.target.closest('[data-note-id]');
+
+            if (!item) return;
+
+            event.preventDefault();
+            selectNote(item.dataset.noteId);
+        });
+    }
+
+    /* =====================================
+       RENDER NOTES
+    ===================================== */
+
+    function renderNotes() {
+        if (!selectedNoteId && notes.length) {
+            selectedNoteId = notes[0].id;
+        }
+
+        const note = notes.find(
+            item => item.id === selectedNoteId
+        );
+
+        if (note) {
+            showEditor();
+
+            titleInput.value = note.title || '';
+            contentInput.value = note.content || '';
+
+            updateEditorStatus('Saved');
+            updateNoteDate(note.updated || note.created);
+        } else {
+            selectedNoteId = null;
+
+            titleInput.value = '';
+            contentInput.value = '';
+
+            showEmptyEditor();
+        }
+
+        renderNotesList();
+        updateDeleteButton();
+    }
 
     /* =====================================
        INITIALIZE
     ===================================== */
 
     function init() {
-        bindNotesNavigation();
         bindSearch();
-        initializeNotesDragDrop();
+        bindEditor();
+        bindListEvents();
         renderNotes();
     }
+
+    window.createNote = createNote;
+    window.deleteNote = deleteNote;
+    window.renderNotes = renderNotes;
 
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', init, {

@@ -23,8 +23,10 @@
 <main>
   <div class="topbar">
     <div><h1 id="welcomeTitle">Good day, welcome back.</h1><div class="sub">Your personal workspace, organized in one place.</div></div>
-    <div class="top-actions"><button onclick="openLinkModal()">＋ Add link</button><button class="primary" onclick="openCardModal()">＋ New work card</button></div>
+   
   </div>
+
+  
 
   <section class="page active" id="page-dashboard">
     <div class="stats">
@@ -32,17 +34,41 @@
       <div class="stat-card"><div class="stat-label">Saved work cards</div><div class="stat-value" id="cardCount">0</div></div>
       <div class="stat-card"><div class="stat-label">Storage</div><div class="stat-value" style="font-size:19px">Auto-save <span style="color:#5eead4">●</span></div></div>
     </div>
+      <!-- MY SPIELS SECTION -->
+<section class="spiels-section">
+
+    <div class="spiels-header">
+        <div>
+            <h2>My Spiels</h2>
+        </div>
+
+        <button
+            type="button"
+            class="primary"
+            onclick="openSpielModal()"
+        >
+            + Add spiel
+        </button>
+    </div>
+
+    <div id="spielsGrid" class="spiels-grid"></div>
+
+</section>
     <div class="section-head"><div><h2>Quick links</h2><p>Click a link to open it in a new browser tab.</p></div><button onclick="openLinkModal()">＋ Add link</button></div>
     <div class="grid" id="dashboardLinks"></div>
     <div class="section-head"><div><h2>Recent work cards</h2><p>Notes, merchant details, procedures, and other work information.</p></div><button onclick="openCardModal()">＋ Create card</button></div>
     <div class="info-grid" id="dashboardCards"></div>
   </section>
 
+  
+
   <section class="page" id="page-links">
     <div class="section-head"><div><h2>Quick links</h2><p>Modify, delete, or add as many shortcuts as you need.</p></div><button class="primary" onclick="openLinkModal()">＋ Add link</button></div>
     <div class="toolbar"><input id="linkSearch" placeholder="Search links…" oninput="renderLinks()" style="margin: 5px;"></div>
     <div class="grid" id="allLinks" style="margin-top:14px"></div>
   </section>
+
+
 
   <section class="page" id="page-cards">
     <div class="section-head"><div><h2>Work cards</h2><p>Keep reusable notes, merchant details, SOPs, and snippets.</p></div><button class="primary" onclick="openCardModal()">＋ New card</button></div>
@@ -118,5 +144,60 @@
 <div class="toast" id="toast">Saved</div>
 <script src="script.js"></script>
 <script src="workdesk-notes.js"></script>
+
+<!-- SPIEL MODAL -->
+<div class="modal-backdrop" id="spielModalBackdrop">
+
+    <div class="modal">
+
+        <h2 id="spielModalTitle">Add New Spiel</h2>
+
+        <div class="form-grid">
+
+            <div class="field">
+                <label for="spielTitle">Spiel Title *</label>
+
+                <input
+                    type="text"
+                    id="spielTitle"
+                    placeholder="e.g. Welcome Message"
+                    maxlength="120"
+                >
+            </div>
+
+            <div class="field">
+                <label for="spielContent">Spiel Content *</label>
+
+                <textarea
+                    id="spielContent"
+                    rows="10"
+                    placeholder="Write your customer support message here..."
+                ></textarea>
+            </div>
+
+        </div>
+
+        <div class="modal-actions">
+
+            <button
+                type="button"
+                onclick="closeSpielModal()"
+            >
+                Cancel
+            </button>
+
+            <button
+                type="button"
+                class="primary"
+                onclick="saveSpiel()"
+            >
+                Save Spiel
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
 </body>
 </html>

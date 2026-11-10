@@ -1207,3 +1207,7 @@ main {
 #page-link-cleaner #linkCleanerStatus {
     text-align: center;
 }
+#linkCleanerOutput {
+    text-align: center;
+    vertical-align: middle;
+}

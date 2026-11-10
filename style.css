@@ -1,4 +1,3 @@
-
 /* =========================================
    WORKDESK - MAIN THEME
 ========================================= */
@@ -19,9 +18,7 @@
     --radius: 14px;
 }
 
-/* =========================================
-   GLOBAL
-========================================= */
+/* GLOBAL */
 
 * {
     box-sizing: border-box;
@@ -108,20 +105,13 @@ textarea {
     min-height: 100px;
 }
 
-/* =========================================
-   MAIN APP LAYOUT
-========================================= */
+/* MAIN APP LAYOUT */
 
 .app {
     display: grid;
     grid-template-columns: 245px minmax(0, 1fr);
     min-height: 100vh;
 }
-
-/* IMPORTANT:
-   margin: 0 prevents main from being
-   vertically centered inside the grid.
-*/
 
 main {
     padding: 30px clamp(18px, 3vw, 42px);
@@ -132,9 +122,7 @@ main {
     align-self: start;
 }
 
-/* =========================================
-   SIDEBAR
-========================================= */
+/* SIDEBAR */
 
 .sidebar {
     padding: 22px 16px;
@@ -196,9 +184,7 @@ main {
     font-size: 12px;
 }
 
-/* =========================================
-   PAGE NAVIGATION
-========================================= */
+/* PAGE NAVIGATION */
 
 .page {
     display: none;
@@ -212,9 +198,7 @@ main {
     display: block;
 }
 
-/* =========================================
-   DASHBOARD WELCOME
-========================================= */
+/* DASHBOARD WELCOME */
 
 .topbar {
     display: flex;
@@ -241,9 +225,7 @@ main {
     flex-wrap: wrap;
 }
 
-/* =========================================
-   SECTION HEADINGS
-========================================= */
+/* SECTION HEADINGS */
 
 .section-head {
     display: flex;
@@ -268,9 +250,7 @@ main {
     font-size: 12px;
 }
 
-/* =========================================
-   STATISTICS
-========================================= */
+/* STATISTICS */
 
 .stats {
     display: grid;
@@ -298,9 +278,7 @@ main {
     margin-top: 7px;
 }
 
-/* =========================================
-   QUICK LINKS
-========================================= */
+/* QUICK LINKS */
 
 .grid {
     display: grid;
@@ -383,9 +361,7 @@ main {
     background: rgba(255,255,255,.04);
 }
 
-/* =========================================
-   WORK CARDS
-========================================= */
+/* WORK CARDS */
 
 .info-grid {
     display: grid;
@@ -446,9 +422,7 @@ main {
     padding: 3px 8px;
 }
 
-/* =========================================
-   TOOLBARS AND SEARCH
-========================================= */
+/* TOOLBARS AND SEARCH */
 
 .toolbar {
     display: flex;
@@ -481,13 +455,7 @@ main {
     color: var(--muted);
 }
 
-/* =========================================
-   SETTINGS & BACKUP
-========================================= */
-
-/* Center settings horizontally, but keep it
-   aligned at the top of the page.
-*/
+/* SETTINGS & BACKUP */
 
 #page-settings {
     width: 100%;
@@ -532,9 +500,7 @@ main {
     font-size: 12px;
 }
 
-/* =========================================
-   FORMS
-========================================= */
+/* FORMS */
 
 .form-grid {
     display: grid;
@@ -548,9 +514,7 @@ main {
     margin-bottom: 5px;
 }
 
-/* =========================================
-   MODALS
-========================================= */
+/* MODALS */
 
 .modal-backdrop {
     position: fixed;
@@ -589,9 +553,7 @@ main {
     margin-top: 18px;
 }
 
-/* =========================================
-   TOAST
-========================================= */
+/* TOAST */
 
 .toast {
     position: fixed;
@@ -614,9 +576,7 @@ main {
     transform: translateY(0);
 }
 
-/* =========================================
-   WORKDESK NOTES
-========================================= */
+/* WORKDESK NOTES */
 
 .notes-workspace {
     display: grid;
@@ -884,9 +844,7 @@ main {
     box-shadow: none;
 }
 
-/* =========================================
-   MY SPIELS
-========================================= */
+/* MY SPIELS */
 
 .spiels-section {
     position: relative;
@@ -914,8 +872,6 @@ main {
     color: var(--muted);
     font-size: 14px;
 }
-
-/* FOUR CARDS PER ROW */
 
 #spielsGrid {
     display: grid;
@@ -975,8 +931,6 @@ main {
     overflow-wrap: anywhere;
 }
 
-/* EDIT BUTTON - TOP RIGHT */
-
 .spiel-actions {
     position: absolute;
     top: 8px;
@@ -1015,9 +969,7 @@ main {
     border-radius: 12px;
 }
 
-/* =========================================
-   RESPONSIVE DESIGN
-========================================= */
+/* RESPONSIVE DESIGN */
 
 @media (max-width: 900px) {
     .app {
@@ -1144,23 +1096,23 @@ main {
     }
 }
 
-/* =========================================
-   SCROLLBARS
-========================================= */
+/* SCROLLBARS */
 
 * {
     scrollbar-color: #475569 #111827;
     scrollbar-width: thin;
 }
+
+/* PAGE SPACING */
+
 #page-links,
 #page-cards,
 #page-notes,
 #page-settings {
     margin-top: 100px;
 }
-/* =========================================
-   CENTER LINK CLEANER
-========================================= */
+
+/* LINK CLEANER */
 
 #page-link-cleaner {
     max-width: 850px;
@@ -1207,7 +1159,98 @@ main {
 #page-link-cleaner #linkCleanerStatus {
     text-align: center;
 }
+
 #linkCleanerOutput {
     text-align: center;
     vertical-align: middle;
+}
+
+#page-link-cleaner h2,
+#page-link-cleaner .section-description {
+    text-align: center;
+}
+
+/* LINK CLEANER + STORE ACTIVATION LAYOUT */
+
+#page-link-cleaner {
+    width: 100%;
+    max-width: none;
+}
+
+#page-link-cleaner .section-head {
+    justify-content: center;
+    text-align: center;
+    margin-bottom: 22px;
+}
+
+#page-link-cleaner .section-head > div {
+    text-align: center;
+}
+
+.link-tools-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: stretch;
+    gap: 20px;
+    width: 100%;
+}
+
+#page-link-cleaner .link-tool-card {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    max-width: none;
+    min-width: 0;
+    margin: 0;
+    padding: 22px;
+}
+
+#page-link-cleaner .link-tool-card h3 {
+    margin: 0 0 8px;
+    text-align: center;
+}
+
+#page-link-cleaner .link-tool-card > .muted {
+    min-height: 36px;
+    margin: 0 0 18px;
+    text-align: center;
+}
+
+#page-link-cleaner .tool-label {
+    display: block;
+    margin: 10px 0 7px;
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 600;
+}
+
+#page-link-cleaner .link-tool-card textarea {
+    width: 100%;
+    min-height: 170px;
+    resize: vertical;
+    box-sizing: border-box;
+    text-align: left;
+    white-space: pre-wrap;
+}
+
+#page-link-cleaner #linkCleanerOutput,
+#page-link-cleaner #activationOutput {
+    cursor: pointer;
+}
+
+#page-link-cleaner .tool-buttons {
+    justify-content: center;
+    margin: 13px 0 8px;
+}
+
+#page-link-cleaner .tool-status {
+    min-height: 18px;
+    margin: 10px 0 0;
+    text-align: center;
+}
+
+@media (max-width: 900px) {
+    .link-tools-grid {
+        grid-template-columns: 1fr;
+    }
 }

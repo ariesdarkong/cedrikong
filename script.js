@@ -1,4 +1,3 @@
-
 /* =========================================
    WORKDESK - MAIN JAVASCRIPT
    Quick Links, Work Cards, My Spiels,
@@ -396,7 +395,6 @@ function deleteLink(id) {
 
 /* =========================================
    LINK CLEANER
-   AUTOMATIC CLEANING
 ========================================= */
 
 function extractCleanLinks(text) {
@@ -404,76 +402,55 @@ function extractCleanLinks(text) {
 
     if (!text || !text.trim()) return links;
 
-    const lines = text.split(/\r?\n/);
+    // Extract Shopify domains from notification messages.
+    const shopifyMatches = text.match(
+        /[a-zA-Z0-9][a-zA-Z0-9-]*\.myshopify\.com/gi
+    );
 
-    lines.forEach(line => {
-        line = line.trim();
+    if (shopifyMatches) {
+        shopifyMatches.forEach(domain => {
+            links.push(domain.toLowerCase());
+        });
+    }
 
-        if (!line) return;
+    // Extract regular URLs and www links.
+    const urlMatches = text.match(
+        /(?:https?:\/\/|www\.)[^\s<>"']+/gi
+    );
 
-        // Shopify domains
-        const shopifyMatches = line.match(
-            /[a-zA-Z0-9][a-zA-Z0-9-]*\.myshopify\.com/gi
-        );
+    if (urlMatches) {
+        urlMatches.forEach(foundURL => {
+            let url = foundURL
+                .replace(/^https?:\/\//i, '')
+                .replace(/^[([{]+/, '')
+                .replace(/[)\]},.!?;:]+$/, '')
+                .replace(/^www\./i, '');
 
-        if (shopifyMatches) {
-            shopifyMatches.forEach(domain => {
-                links.push(domain.toLowerCase());
-            });
+            if (url) {
+                links.push(url);
+            }
+        });
+    }
 
-            return;
-        }
+    // Extract plain domains that do not have a protocol.
+    const plainDomainMatches = text.match(
+        /(?:^|[\s([{])([a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)+)(?::\d+)?(?:\/[^\s<>"']*)?/gim
+    );
 
-        // Regular URLs and www URLs
-        const urlMatches = line.match(
-            /(?:https?:\/\/|www\.)[^\s<>"']+/gi
-        );
+    if (plainDomainMatches) {
+        plainDomainMatches.forEach(found => {
+            let url = found.trim()
+                .replace(/^[([{]+/, '')
+                .replace(/[)\]},.!?;:]+$/, '')
+                .replace(/^www\./i, '');
 
-        if (urlMatches) {
-            urlMatches.forEach(foundURL => {
-                let url = foundURL
-                    .replace(/^https?:\/\//i, '')
-                    .replace(/^[([{]+/, '')
-                    .replace(/[)\]},.!?;:]+$/, '')
-                    .replace(/^www\./i, '');
+            if (url && /\.[a-zA-Z]{2,}/.test(url)) {
+                links.push(url);
+            }
+        });
+    }
 
-                if (url) {
-                    links.push(url);
-                }
-            });
-
-            return;
-        }
-
-        // Plain Shopify domains
-        const plainDomain = line.match(
-            /^[([{]?\s*([a-zA-Z0-9][a-zA-Z0-9-]*\.myshopify\.com)\s*[)\]},.!?;]*$/i
-        );
-
-        if (plainDomain) {
-            links.push(plainDomain[1].toLowerCase());
-            return;
-        }
-
-        // Other plain domains
-        const domainMatches = line.match(
-            /(?:^|\s|[(])([a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)+)(?::\d+)?(?:\/[^\s<>"']*)?/gi
-        );
-
-        if (domainMatches) {
-            domainMatches.forEach(found => {
-                let url = found.trim()
-                    .replace(/^[([{]+/, '')
-                    .replace(/[)\]},.!?;:]+$/, '')
-                    .replace(/^www\./i, '');
-
-                if (url && /\.[a-zA-Z]{2,}/.test(url)) {
-                    links.push(url);
-                }
-            });
-        }
-    });
-
+    // Remove duplicates and empty entries.
     return [...new Set(
         links.map(link => link.trim()).filter(Boolean)
     )];
@@ -482,6 +459,7 @@ function extractCleanLinks(text) {
 
 /* =========================================
    GENERATE CLEAN LINKS
+   ALWAYS REPLACES PREVIOUS RESULTS
 ========================================= */
 
 function generateCleanLinks(options = {}) {
@@ -495,28 +473,22 @@ function generateCleanLinks(options = {}) {
 
     if (!pastedText) return;
 
+    // Extract only the links from the current input.
     const newLinks = extractCleanLinks(pastedText);
 
+    // IMPORTANT:
+    // Replace previous output instead of appending.
+    output.value = newLinks.join('\n');
+
     if (newLinks.length > 0) {
-        const existingLinks = output.value
-            .split(/\r?\n/)
-            .map(link => link.trim())
-            .filter(Boolean);
-
-        const combinedLinks = [
-            ...new Set([...existingLinks, ...newLinks])
-        ];
-
-        output.value = combinedLinks.join('\n');
-
         if (status) {
             status.textContent =
-                combinedLinks.length +
-                ' clean link(s) generated successfully. Click the box to copy.';
+                newLinks.length +
+                ' new link(s) generated. Click the box to copy.';
         }
 
         if (!options.silent) {
-            toast('Clean links generated ✓');
+            toast('New clean links generated ✓');
         }
 
     } else {
@@ -529,8 +501,10 @@ function generateCleanLinks(options = {}) {
         }
     }
 
+    // Clear the input after generating.
     input.value = '';
 
+    // Focus the input again for the next paste.
     if (options.focus !== false) {
         input.focus();
     }
@@ -538,7 +512,9 @@ function generateCleanLinks(options = {}) {
 
 
 /* =========================================
-   AUTOMATIC GENERATE ON PASTE
+   AUTOMATIC LINK CLEANER
+   PASTE = GENERATE IMMEDIATELY
+   TYPING = GENERATE AFTER PAUSE
 ========================================= */
 
 function initializeLinkCleaner() {
@@ -548,17 +524,19 @@ function initializeLinkCleaner() {
     if (input && input.dataset.autoCleanBound !== 'true') {
         input.dataset.autoCleanBound = 'true';
 
-        // Automatically clean pasted content
+        // Automatically process pasted content.
         input.addEventListener('paste', () => {
             setTimeout(() => {
-                generateCleanLinks({
-                    silent: true,
-                    focus: true
-                });
+                if (input.value.trim()) {
+                    generateCleanLinks({
+                        silent: true,
+                        focus: true
+                    });
+                }
             }, 0);
         });
 
-        // Automatically clean manually typed content after a pause
+        // Automatically process manually typed content.
         input.addEventListener('input', () => {
             if (input.dataset.autoCleanTimer) {
                 clearTimeout(Number(input.dataset.autoCleanTimer));
@@ -573,13 +551,14 @@ function initializeLinkCleaner() {
                 }
 
                 delete input.dataset.autoCleanTimer;
+
             }, 1000);
 
             input.dataset.autoCleanTimer = String(timer);
         });
     }
 
-    // Click output box to copy all cleaned links
+    // Clicking anywhere inside the output copies all links.
     if (output && output.dataset.autoCopyBound !== 'true') {
         output.dataset.autoCopyBound = 'true';
 
@@ -588,13 +567,14 @@ function initializeLinkCleaner() {
         });
 
         output.style.cursor = 'pointer';
+        output.style.textAlign = 'center';
         output.title = 'Click to copy all cleaned links';
     }
 }
 
 
 /* =========================================
-   CLICK OUTPUT TO COPY ALL LINKS
+   COPY ALL CLEANED LINKS
 ========================================= */
 
 async function copyCleanLinks() {
@@ -606,8 +586,15 @@ async function copyCleanLinks() {
         return;
     }
 
+    const textToCopy = output.value;
+
     try {
-        await navigator.clipboard.writeText(output.value);
+        if (navigator.clipboard && window.isSecureContext) {
+            await navigator.clipboard.writeText(textToCopy);
+
+        } else {
+            throw new Error('Clipboard API unavailable');
+        }
 
         if (status) {
             status.textContent = 'All cleaned links copied successfully ✓';
@@ -616,8 +603,10 @@ async function copyCleanLinks() {
         toast('All cleaned links copied ✓');
 
     } catch (error) {
+        // Fallback for browsers without Clipboard API access.
         output.focus();
         output.select();
+        output.setSelectionRange(0, output.value.length);
 
         try {
             const copied = document.execCommand('copy');
@@ -633,7 +622,7 @@ async function copyCleanLinks() {
                 toast('Please copy the links manually');
             }
 
-        } catch (error) {
+        } catch (fallbackError) {
             toast('Please copy the links manually');
         }
     }
@@ -658,13 +647,17 @@ function clearLinkCleaner() {
         }
     }
 
-    if (output) output.value = '';
+    if (output) {
+        output.value = '';
+    }
 
     if (status) {
         status.textContent = 'No links generated yet.';
     }
 
-    if (input) input.focus();
+    if (input) {
+        input.focus();
+    }
 
     toast('Link cleaner cleared');
 }

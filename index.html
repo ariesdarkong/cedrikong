@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -28,6 +27,7 @@
             <button data-page="links">↗ Quick Links</button>
             <button data-page="cards">▤ Work Cards</button>
             <button data-page="notes">📝 Notes</button>
+            <button data-page="link-cleaner">✂ Link Cleaner</button>
             <button data-page="settings">⚙ Settings & Backup</button>
         </nav>
 
@@ -50,7 +50,6 @@
 
         <section class="page active" id="page-dashboard">
 
-            <!-- DASHBOARD WELCOME MESSAGE -->
             <div class="topbar">
                 <div>
                     <h1 id="welcomeTitle">Good day, welcome back.</h1>
@@ -59,7 +58,6 @@
                     </div>
                 </div>
             </div>
-
 
             <!-- STATISTICS -->
             <div class="stats">
@@ -84,7 +82,6 @@
 
             </div>
 
-
             <!-- MY SPIELS -->
             <section class="spiels-section">
 
@@ -105,7 +102,6 @@
 
             </section>
 
-
             <!-- QUICK LINKS -->
             <div class="section-head">
 
@@ -121,7 +117,6 @@
             </div>
 
             <div class="grid" id="dashboardLinks"></div>
-
 
             <!-- RECENT WORK CARDS -->
             <div class="section-head">
@@ -188,6 +183,97 @@
 
 
         <!-- =================================
+             LINK CLEANER
+        ================================== -->
+
+        <section class="page" id="page-link-cleaner">
+
+            <div class="section-head">
+                <div>
+                    <h2>Link Cleaner</h2>
+                    <p>
+                        Remove opening and closing parentheses from multiple links.
+                    </p>
+                </div>
+            </div>
+
+            <!-- INPUT -->
+            <div class="settings-box">
+
+                <h3>Paste your links</h3>
+
+                <p class="muted">
+                    Paste your links below, with one link per line.
+                </p>
+
+                <textarea
+                    id="linkCleanerInput"
+                    rows="10"
+                    placeholder="Paste your links here...
+
+(https://example.com)
+(https://google.com)
+(https://shopify.com)"></textarea>
+
+                <div class="toolbar" style="margin-top:15px;">
+
+                    <button
+                        type="button"
+                        class="primary"
+                        onclick="generateCleanLinks()">
+                        Generate
+                    </button>
+
+                    <button
+                        type="button"
+                        onclick="clearLinkCleaner()">
+                        Clear
+                    </button>
+
+                </div>
+
+            </div>
+
+            <!-- OUTPUT -->
+            <div class="settings-box">
+
+                <div class="section-head">
+
+                    <div>
+                        <h3>Cleaned links</h3>
+                        <p>
+                            Your cleaned links will appear here.
+                        </p>
+                    </div>
+
+                    <button
+                        type="button"
+                        class="primary"
+                        onclick="copyCleanLinks()">
+                        Copy
+                    </button>
+
+                </div>
+
+                <textarea
+                    id="linkCleanerOutput"
+                    rows="10"
+                    placeholder="Your cleaned links will appear here..."
+                    readonly></textarea>
+
+                <p
+                    id="linkCleanerStatus"
+                    class="muted"
+                    style="margin-top:12px;">
+                    No links generated yet.
+                </p>
+
+            </div>
+
+        </section>
+
+
+        <!-- =================================
              WORK CARDS
         ================================== -->
 
@@ -246,7 +332,6 @@
 
             <div class="notes-workspace">
 
-                <!-- LEFT SIDEBAR -->
                 <aside class="notes-sidebar">
 
                     <div class="notes-sidebar-header">
@@ -280,7 +365,6 @@
 
                     </div>
 
-                    <!-- NOTES SEARCH -->
                     <div class="notes-search-wrap">
 
                         <input
@@ -291,7 +375,6 @@
 
                     </div>
 
-                    <!-- NOTES LIST -->
                     <div
                         id="notesList"
                         class="notes-list">
@@ -299,11 +382,8 @@
 
                 </aside>
 
-
-                <!-- RIGHT EDITOR -->
                 <section class="notes-editor">
 
-                    <!-- EMPTY STATE -->
                     <div
                         id="notesEditorEmpty"
                         class="notes-editor-empty">
@@ -319,7 +399,6 @@
 
                     </div>
 
-                    <!-- NOTE CONTENT -->
                     <div
                         id="notesEditorContent"
                         class="notes-editor-content"
@@ -369,7 +448,6 @@
 
             </div>
 
-
             <!-- WORKSPACE APPEARANCE -->
             <div class="settings-box">
 
@@ -406,7 +484,6 @@
                 </div>
 
             </div>
-
 
             <!-- BACKUP AND RESTORE -->
             <div class="settings-box">
@@ -447,7 +524,6 @@
                 </div>
 
             </div>
-
 
             <!-- DATA MANAGEMENT -->
             <div class="settings-box">

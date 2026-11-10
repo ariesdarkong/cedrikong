@@ -40,14 +40,10 @@
 
     </aside>
 
-
     <!-- MAIN CONTENT -->
     <main>
 
-        <!-- =================================
-             DASHBOARD
-        ================================== -->
-
+        <!-- DASHBOARD -->
         <section class="page active" id="page-dashboard">
 
             <div class="topbar">
@@ -59,7 +55,6 @@
                 </div>
             </div>
 
-            <!-- STATISTICS -->
             <div class="stats">
 
                 <div class="stat-card">
@@ -104,7 +99,6 @@
 
             <!-- QUICK LINKS -->
             <div class="section-head">
-
                 <div>
                     <h2>Quick links</h2>
                     <p>Click a link to open it in a new browser tab.</p>
@@ -113,14 +107,12 @@
                 <button onclick="openLinkModal()">
                     + Add link
                 </button>
-
             </div>
 
             <div class="grid" id="dashboardLinks"></div>
 
             <!-- RECENT WORK CARDS -->
             <div class="section-head">
-
                 <div>
                     <h2>Recent work cards</h2>
                     <p>
@@ -132,22 +124,16 @@
                 <button onclick="openCardModal()">
                     + Create card
                 </button>
-
             </div>
 
             <div class="info-grid" id="dashboardCards"></div>
 
         </section>
 
-
-        <!-- =================================
-             QUICK LINKS
-        ================================== -->
-
+        <!-- QUICK LINKS -->
         <section class="page" id="page-links">
 
             <div class="section-head">
-
                 <div>
                     <h2>Quick links</h2>
                     <p>
@@ -155,44 +141,31 @@
                     </p>
                 </div>
 
-                <button
-                    class="primary"
-                    onclick="openLinkModal()">
+                <button class="primary" onclick="openLinkModal()">
                     + Add link
                 </button>
-
             </div>
 
             <div class="toolbar">
-
                 <input
                     id="linkSearch"
                     placeholder="Search links..."
                     oninput="renderLinks()"
                     style="margin:5px;">
-
             </div>
 
-            <div
-                class="grid"
-                id="allLinks"
-                style="margin-top:14px;">
-            </div>
+            <div class="grid" id="allLinks" style="margin-top:14px;"></div>
 
         </section>
 
-
-        <!-- =================================
-             LINK CLEANER
-        ================================== -->
-
+        <!-- LINK CLEANER -->
         <section class="page" id="page-link-cleaner">
 
             <div class="section-head">
                 <div>
                     <h2>Link Cleaner</h2>
                     <p>
-                        Remove opening and closing parentheses from multiple links.
+                        Clean links from pasted messages and notifications.
                     </p>
                 </div>
             </div>
@@ -200,9 +173,9 @@
             <!-- INPUT -->
             <div class="settings-box">
 
-                <h3>Paste your links</h3>
+                <h3 style="text-align:center;">Paste your links</h3>
 
-                <p class="muted">
+                <p class="muted" style="text-align:center;">
                     Paste your links below, with one link per line.
                 </p>
 
@@ -215,7 +188,7 @@
 (https://google.com)
 (https://shopify.com)"></textarea>
 
-                <div class="toolbar" style="margin-top:15px;">
+                <div class="toolbar" style="margin-top:15px; justify-content:center;">
 
                     <button
                         type="button"
@@ -237,31 +210,21 @@
             <!-- OUTPUT -->
             <div class="settings-box">
 
-                <div class="section-head">
+                <h3 style="text-align:center;">Cleaned links</h3>
 
-                    <div>
-
-                    </div>
-
-                    <button
-                        type="button"
-                        class="primary"
-                        onclick="copyCleanLinks()">
-                        Copy
-                    </button>
-
-                </div>
-
-<textarea
-    id="linkCleanerOutput"
-    placeholder="Cleaned links will appear here. Click to copy all links."
-    readonly
-></textarea>
+                <textarea
+                    id="linkCleanerOutput"
+                    rows="10"
+                    placeholder="Your cleaned links will appear here. Click this box to copy all links."
+                    readonly
+                    style="text-align:center; cursor:pointer;"
+                    title="Click to copy all cleaned links"
+                ></textarea>
 
                 <p
                     id="linkCleanerStatus"
                     class="muted"
-                    style="margin-top:12px;">
+                    style="margin-top:12px; text-align:center;">
                     No links generated yet.
                 </p>
 
@@ -269,15 +232,10 @@
 
         </section>
 
-
-        <!-- =================================
-             WORK CARDS
-        ================================== -->
-
+        <!-- WORK CARDS -->
         <section class="page" id="page-cards">
 
             <div class="section-head">
-
                 <div>
                     <h2>Work cards</h2>
                     <p>
@@ -286,12 +244,9 @@
                     </p>
                 </div>
 
-                <button
-                    class="primary"
-                    onclick="openCardModal()">
+                <button class="primary" onclick="openCardModal()">
                     + New card
                 </button>
-
             </div>
 
             <div class="toolbar">
@@ -312,19 +267,11 @@
 
             </div>
 
-            <div
-                class="info-grid"
-                id="allCards"
-                style="margin-top:14px;">
-            </div>
+            <div class="info-grid" id="allCards" style="margin-top:14px;"></div>
 
         </section>
 
-
-        <!-- =================================
-             NOTES
-        ================================== -->
-
+        <!-- NOTES -->
         <section class="page" id="page-notes">
 
             <div class="notes-workspace">
@@ -363,27 +310,20 @@
                     </div>
 
                     <div class="notes-search-wrap">
-
                         <input
                             type="search"
                             id="notesSearch"
                             placeholder="Search notes..."
                             autocomplete="off">
-
                     </div>
 
-                    <div
-                        id="notesList"
-                        class="notes-list">
-                    </div>
+                    <div id="notesList" class="notes-list"></div>
 
                 </aside>
 
                 <section class="notes-editor">
 
-                    <div
-                        id="notesEditorEmpty"
-                        class="notes-editor-empty">
+                    <div id="notesEditorEmpty" class="notes-editor-empty">
 
                         <div class="notes-empty-icon">📝</div>
 
@@ -427,25 +367,18 @@
 
         </section>
 
-
-        <!-- =================================
-             SETTINGS & BACKUP
-        ================================== -->
-
+        <!-- SETTINGS & BACKUP -->
         <section class="page" id="page-settings">
 
             <div class="section-head">
-
                 <div>
                     <h2>Settings & backup</h2>
                     <p>
                         Customize your dashboard and manage your local data.
                     </p>
                 </div>
-
             </div>
 
-            <!-- WORKSPACE APPEARANCE -->
             <div class="settings-box">
 
                 <h3>Workspace appearance</h3>
@@ -453,28 +386,18 @@
                 <div class="form-grid">
 
                     <div class="field">
-
                         <label>Workspace name</label>
-
-                        <input
-                            id="settingBrand"
-                            placeholder="WorkDesk">
-
+                        <input id="settingBrand" placeholder="WorkDesk">
                     </div>
 
                     <div class="field">
-
                         <label>Welcome message</label>
-
                         <input
                             id="settingWelcome"
                             placeholder="Good day, welcome back.">
-
                     </div>
 
-                    <button
-                        class="primary"
-                        onclick="saveSettings()">
+                    <button class="primary" onclick="saveSettings()">
                         Save settings
                     </button>
 
@@ -482,7 +405,6 @@
 
             </div>
 
-            <!-- BACKUP AND RESTORE -->
             <div class="settings-box">
 
                 <h3>Backup / restore</h3>
@@ -495,9 +417,7 @@
 
                 <div class="toolbar">
 
-                    <button
-                        class="primary"
-                        onclick="exportData()">
+                    <button class="primary" onclick="exportData()">
                         Export backup
                     </button>
 
@@ -522,7 +442,6 @@
 
             </div>
 
-            <!-- DATA MANAGEMENT -->
             <div class="settings-box">
 
                 <h3>Data management</h3>
@@ -533,9 +452,7 @@
                     Local storage is not synced between devices or browsers.
                 </p>
 
-                <button
-                    class="danger"
-                    onclick="clearData()">
+                <button class="danger" onclick="clearData()">
                     Reset all dashboard data
                 </button>
 
@@ -547,11 +464,7 @@
 
 </div>
 
-
-<!-- =================================
-     SHARED MODAL
-================================== -->
-
+<!-- SHARED MODAL -->
 <div
     class="modal-backdrop"
     id="modalBackdrop"
@@ -565,9 +478,7 @@
 
         <div class="modal-actions">
 
-            <button
-                type="button"
-                onclick="closeModal()">
+            <button type="button" onclick="closeModal()">
                 Cancel
             </button>
 
@@ -584,14 +495,8 @@
 
 </div>
 
-
-<!-- =================================
-     SPIEL MODAL
-================================== -->
-
-<div
-    class="modal-backdrop"
-    id="spielModalBackdrop">
+<!-- SPIEL MODAL -->
+<div class="modal-backdrop" id="spielModalBackdrop">
 
     <div class="modal">
 
@@ -600,7 +505,6 @@
         <div class="form-grid">
 
             <div class="field">
-
                 <label for="spielTitle">Spiel Title *</label>
 
                 <input
@@ -608,27 +512,22 @@
                     id="spielTitle"
                     placeholder="e.g. Welcome Message"
                     maxlength="120">
-
             </div>
 
             <div class="field">
-
                 <label for="spielContent">Spiel Content *</label>
 
                 <textarea
                     id="spielContent"
                     rows="10"
                     placeholder="Write your customer support message here..."></textarea>
-
             </div>
 
         </div>
 
         <div class="modal-actions">
 
-            <button
-                type="button"
-                onclick="closeSpielModal()">
+            <button type="button" onclick="closeSpielModal()">
                 Cancel
             </button>
 
@@ -645,10 +544,8 @@
 
 </div>
 
-
 <!-- TOAST MESSAGE -->
 <div class="toast" id="toast">Saved</div>
-
 
 <!-- JAVASCRIPT FILES -->
 <script src="script.js"></script>

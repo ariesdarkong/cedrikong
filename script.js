@@ -396,26 +396,22 @@ function deleteLink(id) {
 
 /* =========================================
    LINK CLEANER
-   Extract clean domains and URLs
-   WITHOUT https:// or http://
+   AUTOMATIC CLEANING
 ========================================= */
 
-function generateCleanLinks() {
-    const input = document.getElementById('linkCleanerInput');
-    const output = document.getElementById('linkCleanerOutput');
-    const status = document.getElementById('linkCleanerStatus');
-
-    if (!input || !output) return;
-
-    const lines = input.value.split(/\r?\n/);
+function extractCleanLinks(text) {
     const links = [];
+
+    if (!text || !text.trim()) return links;
+
+    const lines = text.split(/\r?\n/);
 
     lines.forEach(line => {
         line = line.trim();
 
         if (!line) return;
 
-        // Extract Shopify domains from merchant messages
+        // Shopify domains
         const shopifyMatches = line.match(
             /[a-zA-Z0-9][a-zA-Z0-9-]*\.myshopify\.com/gi
         );
@@ -428,9 +424,9 @@ function generateCleanLinks() {
             return;
         }
 
-        // Extract regular URLs
+        // Regular URLs and www URLs
         const urlMatches = line.match(
-            /https?:\/\/[^\s<>"']+|www\.[^\s<>"']+/gi
+            /(?:https?:\/\/|www\.)[^\s<>"']+/gi
         );
 
         if (urlMatches) {
@@ -438,11 +434,8 @@ function generateCleanLinks() {
                 let url = foundURL
                     .replace(/^https?:\/\//i, '')
                     .replace(/^[([{]+/, '')
-                    .replace(/[)\]},.!?;]+$/, '');
-
-                if (url.toLowerCase().startsWith('www.')) {
-                    url = url.substring(4);
-                }
+                    .replace(/[)\]},.!?;:]+$/, '')
+                    .replace(/^www\./i, '');
 
                 if (url) {
                     links.push(url);
@@ -452,45 +445,164 @@ function generateCleanLinks() {
             return;
         }
 
-        // Support plain Shopify domains
+        // Plain Shopify domains
         const plainDomain = line.match(
             /^[([{]?\s*([a-zA-Z0-9][a-zA-Z0-9-]*\.myshopify\.com)\s*[)\]},.!?;]*$/i
         );
 
         if (plainDomain) {
             links.push(plainDomain[1].toLowerCase());
+            return;
+        }
+
+        // Other plain domains
+        const domainMatches = line.match(
+            /(?:^|\s|[(])([a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)+)(?::\d+)?(?:\/[^\s<>"']*)?/gi
+        );
+
+        if (domainMatches) {
+            domainMatches.forEach(found => {
+                let url = found.trim()
+                    .replace(/^[([{]+/, '')
+                    .replace(/[)\]},.!?;:]+$/, '')
+                    .replace(/^www\./i, '');
+
+                if (url && /\.[a-zA-Z]{2,}/.test(url)) {
+                    links.push(url);
+                }
+            });
         }
     });
 
-    // Remove duplicate links
-    const uniqueLinks = [...new Set(links)];
+    return [...new Set(
+        links.map(link => link.trim()).filter(Boolean)
+    )];
+}
 
-    output.value = uniqueLinks.join('\n');
 
-    if (uniqueLinks.length > 0) {
+/* =========================================
+   GENERATE CLEAN LINKS
+========================================= */
+
+function generateCleanLinks(options = {}) {
+    const input = document.getElementById('linkCleanerInput');
+    const output = document.getElementById('linkCleanerOutput');
+    const status = document.getElementById('linkCleanerStatus');
+
+    if (!input || !output) return;
+
+    const pastedText = input.value.trim();
+
+    if (!pastedText) return;
+
+    const newLinks = extractCleanLinks(pastedText);
+
+    if (newLinks.length > 0) {
+        const existingLinks = output.value
+            .split(/\r?\n/)
+            .map(link => link.trim())
+            .filter(Boolean);
+
+        const combinedLinks = [
+            ...new Set([...existingLinks, ...newLinks])
+        ];
+
+        output.value = combinedLinks.join('\n');
+
         if (status) {
             status.textContent =
-                uniqueLinks.length + ' clean link(s) generated successfully.';
+                combinedLinks.length +
+                ' clean link(s) generated successfully. Click the box to copy.';
         }
 
-        toast('Clean links generated ✓');
+        if (!options.silent) {
+            toast('Clean links generated ✓');
+        }
 
     } else {
         if (status) {
             status.textContent = 'No valid links found.';
         }
 
-        toast('No links found');
+        if (!options.silent) {
+            toast('No valid links found');
+        }
+    }
+
+    input.value = '';
+
+    if (options.focus !== false) {
+        input.focus();
     }
 }
 
+
+/* =========================================
+   AUTOMATIC GENERATE ON PASTE
+========================================= */
+
+function initializeLinkCleaner() {
+    const input = document.getElementById('linkCleanerInput');
+    const output = document.getElementById('linkCleanerOutput');
+
+    if (input && input.dataset.autoCleanBound !== 'true') {
+        input.dataset.autoCleanBound = 'true';
+
+        // Automatically clean pasted content
+        input.addEventListener('paste', () => {
+            setTimeout(() => {
+                generateCleanLinks({
+                    silent: true,
+                    focus: true
+                });
+            }, 0);
+        });
+
+        // Automatically clean manually typed content after a pause
+        input.addEventListener('input', () => {
+            if (input.dataset.autoCleanTimer) {
+                clearTimeout(Number(input.dataset.autoCleanTimer));
+            }
+
+            const timer = setTimeout(() => {
+                if (input.value.trim()) {
+                    generateCleanLinks({
+                        silent: true,
+                        focus: false
+                    });
+                }
+
+                delete input.dataset.autoCleanTimer;
+            }, 1000);
+
+            input.dataset.autoCleanTimer = String(timer);
+        });
+    }
+
+    // Click output box to copy all cleaned links
+    if (output && output.dataset.autoCopyBound !== 'true') {
+        output.dataset.autoCopyBound = 'true';
+
+        output.addEventListener('click', () => {
+            copyCleanLinks();
+        });
+
+        output.style.cursor = 'pointer';
+        output.title = 'Click to copy all cleaned links';
+    }
+}
+
+
+/* =========================================
+   CLICK OUTPUT TO COPY ALL LINKS
+========================================= */
 
 async function copyCleanLinks() {
     const output = document.getElementById('linkCleanerOutput');
     const status = document.getElementById('linkCleanerStatus');
 
     if (!output || !output.value.trim()) {
-        toast('Generate your links first');
+        toast('No cleaned links to copy');
         return;
     }
 
@@ -498,10 +610,10 @@ async function copyCleanLinks() {
         await navigator.clipboard.writeText(output.value);
 
         if (status) {
-            status.textContent = 'Cleaned links copied successfully ✓';
+            status.textContent = 'All cleaned links copied successfully ✓';
         }
 
-        toast('Links copied ✓');
+        toast('All cleaned links copied ✓');
 
     } catch (error) {
         output.focus();
@@ -512,10 +624,10 @@ async function copyCleanLinks() {
 
             if (copied) {
                 if (status) {
-                    status.textContent = 'Cleaned links copied successfully ✓';
+                    status.textContent = 'All cleaned links copied successfully ✓';
                 }
 
-                toast('Links copied ✓');
+                toast('All cleaned links copied ✓');
 
             } else {
                 toast('Please copy the links manually');
@@ -528,17 +640,31 @@ async function copyCleanLinks() {
 }
 
 
+/* =========================================
+   CLEAR LINK CLEANER
+========================================= */
+
 function clearLinkCleaner() {
     const input = document.getElementById('linkCleanerInput');
     const output = document.getElementById('linkCleanerOutput');
     const status = document.getElementById('linkCleanerStatus');
 
-    if (input) input.value = '';
+    if (input) {
+        input.value = '';
+
+        if (input.dataset.autoCleanTimer) {
+            clearTimeout(Number(input.dataset.autoCleanTimer));
+            delete input.dataset.autoCleanTimer;
+        }
+    }
+
     if (output) output.value = '';
 
     if (status) {
         status.textContent = 'No links generated yet.';
     }
+
+    if (input) input.focus();
 
     toast('Link cleaner cleared');
 }
@@ -1213,4 +1339,5 @@ function clearData() {
 ========================================= */
 
 initializeSpielEvents();
+initializeLinkCleaner();
 renderAll();

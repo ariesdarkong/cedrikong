@@ -1,4 +1,3 @@
-
 /* =========================================
    WORKDESK NOTES
    Two-Panel Notes Workspace
@@ -18,9 +17,7 @@
     const contentInput = document.getElementById('noteContent');
     const searchInput = document.getElementById('notesSearch');
 
-    /* =====================================
-       LOAD AND SAVE
-    ===================================== */
+    /* LOAD AND SAVE */
 
     function loadNotes() {
         try {
@@ -29,6 +26,7 @@
             );
 
             return Array.isArray(saved) ? saved : [];
+
         } catch (error) {
             console.error('Notes loading error:', error);
             return [];
@@ -43,6 +41,7 @@
             );
 
             return true;
+
         } catch (error) {
             console.error('Notes saving error:', error);
 
@@ -80,9 +79,7 @@
         });
     }
 
-    /* =====================================
-       UPDATE DELETE BUTTON
-    ===================================== */
+    /* UPDATE DELETE BUTTON */
 
     function updateDeleteButton() {
         const button = document.getElementById('notesDeleteBtn');
@@ -92,9 +89,7 @@
         }
     }
 
-    /* =====================================
-       EDITOR VISIBILITY
-    ===================================== */
+    /* EDITOR VISIBILITY */
 
     function showEditor() {
         const empty = document.getElementById('notesEditorEmpty');
@@ -112,9 +107,7 @@
         if (editor) editor.hidden = true;
     }
 
-    /* =====================================
-       SAVE CURRENT NOTE
-    ===================================== */
+    /* SAVE CURRENT NOTE */
 
     function saveCurrentNote() {
         if (!selectedNoteId || !titleInput || !contentInput) {
@@ -164,9 +157,7 @@
         }
     }
 
-    /* =====================================
-       RENDER NOTES LIST
-    ===================================== */
+    /* RENDER NOTES LIST */
 
     function renderNotesList() {
         const list = document.getElementById('notesList');
@@ -231,9 +222,7 @@
         }).join('');
     }
 
-    /* =====================================
-       SELECT NOTE
-    ===================================== */
+    /* SELECT NOTE */
 
     function selectNote(id) {
         if (selectedNoteId === id) return;
@@ -259,9 +248,7 @@
         updateDeleteButton();
     }
 
-    /* =====================================
-       CREATE NOTE
-    ===================================== */
+    /* CREATE NOTE */
 
     function createNote() {
         clearTimeout(saveTimer);
@@ -296,9 +283,7 @@
         titleInput.focus();
     }
 
-    /* =====================================
-       DELETE NOTE
-    ===================================== */
+    /* DELETE NOTE */
 
     function deleteNote() {
         if (!selectedNoteId) return;
@@ -337,6 +322,7 @@
 
             updateEditorStatus('Saved');
             updateNoteDate(firstNote.updated || firstNote.created);
+
         } else {
             titleInput.value = '';
             contentInput.value = '';
@@ -352,9 +338,7 @@
         }
     }
 
-    /* =====================================
-       SEARCH
-    ===================================== */
+    /* SEARCH */
 
     function bindSearch() {
         if (!searchInput) return;
@@ -362,9 +346,7 @@
         searchInput.addEventListener('input', renderNotesList);
     }
 
-    /* =====================================
-       EDITOR EVENTS
-    ===================================== */
+    /* EDITOR EVENTS */
 
     function bindEditor() {
         if (titleInput) {
@@ -397,9 +379,7 @@
         });
     }
 
-    /* =====================================
-       NOTES LIST EVENTS
-    ===================================== */
+    /* NOTES LIST EVENTS */
 
     function bindListEvents() {
         const list = document.getElementById('notesList');
@@ -426,9 +406,7 @@
         });
     }
 
-    /* =====================================
-       RENDER NOTES
-    ===================================== */
+    /* RENDER NOTES */
 
     function renderNotes() {
         if (!selectedNoteId && notes.length) {
@@ -447,6 +425,7 @@
 
             updateEditorStatus('Saved');
             updateNoteDate(note.updated || note.created);
+
         } else {
             selectedNoteId = null;
 
@@ -460,9 +439,7 @@
         updateDeleteButton();
     }
 
-    /* =====================================
-       INITIALIZE
-    ===================================== */
+    /* INITIALIZE */
 
     function init() {
         bindSearch();

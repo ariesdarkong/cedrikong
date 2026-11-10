@@ -1158,3 +1158,52 @@ main {
 #page-settings {
     margin-top: 100px;
 }
+/* =========================================
+   CENTER LINK CLEANER
+========================================= */
+
+#page-link-cleaner {
+    max-width: 850px;
+    width: 100%;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+#page-link-cleaner > .section-head {
+    text-align: center;
+    justify-content: center;
+}
+
+#page-link-cleaner .settings-box {
+    width: 100%;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+#page-link-cleaner .settings-box h3,
+#page-link-cleaner .settings-box > p {
+    text-align: center;
+}
+
+#page-link-cleaner textarea {
+    width: 100%;
+    min-height: 200px;
+    resize: vertical;
+    box-sizing: border-box;
+}
+
+#page-link-cleaner .toolbar {
+    justify-content: center;
+}
+
+#page-link-cleaner .section-head {
+    align-items: center;
+}
+
+#page-link-cleaner .section-head > div {
+    text-align: center;
+}
+
+#page-link-cleaner #linkCleanerStatus {
+    text-align: center;
+}

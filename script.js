@@ -12,6 +12,7 @@ const starter = {
         brand: 'WorkDesk',
         welcome: 'Good day, welcome back.'
     },
+
     links: [
         {
             id: 'l1',
@@ -62,6 +63,7 @@ const starter = {
             category: 'Tools'
         }
     ],
+
     cards: [
         {
             id: 'c1',
@@ -78,9 +80,9 @@ const starter = {
             updated: Date.now()
         }
     ],
+
     spiels: []
 };
-
 
 /* =========================================
    DATA
@@ -116,7 +118,9 @@ let editSpielId = null;
 function saveData() {
     try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+
         renderAll();
+
         toast('Saved automatically ✓');
 
     } catch (error) {
@@ -172,7 +176,6 @@ function safeURL(url) {
     }
 }
 
-
 /* =========================================
    PAGE NAVIGATION
 ========================================= */
@@ -210,7 +213,6 @@ document.querySelectorAll('.nav button').forEach(button => {
     });
 });
 
-
 /* =========================================
    QUICK LINKS
 ========================================= */
@@ -244,7 +246,9 @@ function linkHTML(link) {
                 </button>
 
                 <div class="mini-actions">
-                    <button onclick="editLink('${escapeHTML(link.id)}')">Edit</button>
+                    <button onclick="editLink('${escapeHTML(link.id)}')">
+                        Edit
+                    </button>
 
                     <button class="danger"
                             onclick="deleteLink('${escapeHTML(link.id)}')">
@@ -329,29 +333,38 @@ function openLinkModal(id = null) {
 
                 <div class="field">
                     <label>URL *</label>
-                    <input id="fURL" value="${escapeHTML(link.url)}"
-                           placeholder="https://example.com" required>
+                    <input id="fURL"
+                           value="${escapeHTML(link.url)}"
+                           placeholder="https://example.com"
+                           required>
                 </div>
 
                 <div class="field">
                     <label>Icon / emoji</label>
-                    <input id="fIcon" value="${escapeHTML(link.icon)}" maxlength="8">
+                    <input id="fIcon"
+                           value="${escapeHTML(link.icon)}"
+                           maxlength="8">
                 </div>
 
                 <div class="field">
                     <label>Description</label>
-                    <input id="fDesc" value="${escapeHTML(link.description || '')}">
+                    <input id="fDesc"
+                           value="${escapeHTML(link.description || '')}">
                 </div>
 
                 <div class="field">
                     <label>Category</label>
-                    <input id="fCat" value="${escapeHTML(link.category || 'Work')}">
+                    <input id="fCat"
+                           value="${escapeHTML(link.category || 'Work')}">
                 </div>
             </div>
         `,
         () => {
             const title = document.getElementById('fTitle').value.trim();
-            const url = safeURL(document.getElementById('fURL').value);
+
+            const url = safeURL(
+                document.getElementById('fURL').value
+            );
 
             if (!title || !url) {
                 toast('Enter a name and valid URL');
@@ -389,73 +402,57 @@ function deleteLink(id) {
     if (!confirm('Delete this quick link?')) return;
 
     data.links = data.links.filter(item => item.id !== id);
+
     saveData();
 }
-
 
 /* =========================================
    LINK CLEANER
 ========================================= */
 
 function extractCleanLinks(text) {
+    if (!text || !text.trim()) return [];
+
     const links = [];
 
-    if (!text || !text.trim()) return links;
+    const shopifyRegex =
+        /[a-zA-Z0-9][a-zA-Z0-9-]*\.myshopify\.com/gi;
 
-    // Extract Shopify domains from notification messages.
-    const shopifyMatches = text.match(
-        /[a-zA-Z0-9][a-zA-Z0-9-]*\.myshopify\.com/gi
-    );
+    const urlRegex =
+        /(?:https?:\/\/|www\.)[^\s<>"']+/gi;
 
-    if (shopifyMatches) {
-        shopifyMatches.forEach(domain => {
-            links.push(domain.toLowerCase());
-        });
+    for (const match of text.matchAll(shopifyRegex)) {
+        links.push(match[0].toLowerCase());
     }
 
-    // Extract regular URLs and www links.
-    const urlMatches = text.match(
-        /(?:https?:\/\/|www\.)[^\s<>"']+/gi
-    );
+    for (const match of text.matchAll(urlRegex)) {
+        const value = match[0]
+            .replace(/^https?:\/\//i, '')
+            .replace(/^www\./i, '')
+            .replace(/^[([{]+/, '')
+            .replace(/[)\]}>.,!?;:]+$/, '');
 
-    if (urlMatches) {
-        urlMatches.forEach(foundURL => {
-            let url = foundURL
-                .replace(/^https?:\/\//i, '')
-                .replace(/^[([{]+/, '')
-                .replace(/[)\]},.!?;:]+$/, '')
-                .replace(/^www\./i, '');
-
-            if (url) {
-                links.push(url);
-            }
-        });
+        if (value) links.push(value);
     }
 
-    // Extract plain domains that do not have a protocol.
-    const plainDomainMatches = text.match(
-        /(?:^|[\s([{])([a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)+)(?::\d+)?(?:\/[^\s<>"']*)?/gim
-    );
+    const plainDomainRegex =
+        /(?:^|[\s([{])([a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)+(?:\/[^\s<>"']*)?)/gim;
 
-    if (plainDomainMatches) {
-        plainDomainMatches.forEach(found => {
-            let url = found.trim()
-                .replace(/^[([{]+/, '')
-                .replace(/[)\]},.!?;:]+$/, '')
-                .replace(/^www\./i, '');
+    for (const match of text.matchAll(plainDomainRegex)) {
+        const value = match[1]
+            .replace(/^[([{]+/, '')
+            .replace(/[)\]}>.,!?;:]+$/, '')
+            .replace(/^www\./i, '');
 
-            if (url && /\.[a-zA-Z]{2,}/.test(url)) {
-                links.push(url);
-            }
-        });
+        if (value && /\.[a-zA-Z]{2,}/.test(value)) {
+            links.push(value);
+        }
     }
 
-    // Remove duplicates and empty entries.
     return [...new Set(
         links.map(link => link.trim()).filter(Boolean)
     )];
 }
-
 
 /* =========================================
    GENERATE CLEAN LINKS
@@ -473,10 +470,8 @@ function generateCleanLinks(options = {}) {
 
     if (!pastedText) return;
 
-    // Extract only the links from the current input.
     const newLinks = extractCleanLinks(pastedText);
 
-    // IMPORTANT:
     // Replace previous output instead of appending.
     output.value = newLinks.join('\n');
 
@@ -501,15 +496,14 @@ function generateCleanLinks(options = {}) {
         }
     }
 
-    // Clear the input after generating.
+    // Clear input after generating.
     input.value = '';
 
-    // Focus the input again for the next paste.
+    // Focus input again for next paste.
     if (options.focus !== false) {
         input.focus();
     }
 }
-
 
 /* =========================================
    AUTOMATIC LINK CLEANER
@@ -551,14 +545,13 @@ function initializeLinkCleaner() {
                 }
 
                 delete input.dataset.autoCleanTimer;
-
             }, 1000);
 
             input.dataset.autoCleanTimer = String(timer);
         });
     }
 
-    // Clicking anywhere inside the output copies all links.
+    // Clicking output copies all links.
     if (output && output.dataset.autoCopyBound !== 'true') {
         output.dataset.autoCopyBound = 'true';
 
@@ -571,7 +564,6 @@ function initializeLinkCleaner() {
         output.title = 'Click to copy all cleaned links';
     }
 }
-
 
 /* =========================================
    COPY ALL CLEANED LINKS
@@ -591,7 +583,6 @@ async function copyCleanLinks() {
     try {
         if (navigator.clipboard && window.isSecureContext) {
             await navigator.clipboard.writeText(textToCopy);
-
         } else {
             throw new Error('Clipboard API unavailable');
         }
@@ -603,7 +594,6 @@ async function copyCleanLinks() {
         toast('All cleaned links copied ✓');
 
     } catch (error) {
-        // Fallback for browsers without Clipboard API access.
         output.focus();
         output.select();
         output.setSelectionRange(0, output.value.length);
@@ -627,7 +617,6 @@ async function copyCleanLinks() {
         }
     }
 }
-
 
 /* =========================================
    CLEAR LINK CLEANER
@@ -662,7 +651,6 @@ function clearLinkCleaner() {
     toast('Link cleaner cleared');
 }
 
-
 /* =========================================
    WORK CARDS
 ========================================= */
@@ -688,8 +676,13 @@ function cardHTML(card) {
             </div>
 
             <div class="card-footer">
-                <button onclick="copyCard('${escapeHTML(card.id)}')">Copy</button>
-                <button onclick="editCard('${escapeHTML(card.id)}')">Edit</button>
+                <button onclick="copyCard('${escapeHTML(card.id)}')">
+                    Copy
+                </button>
+
+                <button onclick="editCard('${escapeHTML(card.id)}')">
+                    Edit
+                </button>
 
                 <button class="danger"
                         onclick="deleteCard('${escapeHTML(card.id)}')">
@@ -719,7 +712,8 @@ function renderCards() {
         document.getElementById('cardSearch')?.value || ''
     ).toLowerCase();
 
-    const category = document.getElementById('cardCategory')?.value || '';
+    const category =
+        document.getElementById('cardCategory')?.value || '';
 
     const filtered = data.cards.filter(card => {
         const matchesSearch = (
@@ -772,23 +766,30 @@ function openCardModal(id = null) {
             <div class="form-grid">
                 <div class="field">
                     <label>Card title *</label>
-                    <input id="fTitle" value="${escapeHTML(card.title)}" required>
+                    <input id="fTitle"
+                           value="${escapeHTML(card.title)}"
+                           required>
                 </div>
 
                 <div class="field">
                     <label>Category</label>
-                    <input id="fCat" value="${escapeHTML(card.category || 'Notes')}">
+                    <input id="fCat"
+                           value="${escapeHTML(card.category || 'Notes')}">
                 </div>
 
                 <div class="field">
                     <label>Information / notes *</label>
-                    <textarea id="fContent" rows="8">${escapeHTML(card.content || '')}</textarea>
+                    <textarea id="fContent"
+                              rows="8">${escapeHTML(card.content || '')}</textarea>
                 </div>
             </div>
         `,
         () => {
-            const title = document.getElementById('fTitle').value.trim();
-            const content = document.getElementById('fContent').value;
+            const title =
+                document.getElementById('fTitle').value.trim();
+
+            const content =
+                document.getElementById('fContent').value;
 
             if (!title) {
                 toast('Enter a card title');
@@ -798,7 +799,8 @@ function openCardModal(id = null) {
             const item = {
                 id: id || uid(),
                 title,
-                category: document.getElementById('fCat').value.trim() || 'General',
+                category:
+                    document.getElementById('fCat').value.trim() || 'General',
                 content,
                 updated: Date.now()
             };
@@ -825,6 +827,7 @@ function deleteCard(id) {
     if (!confirm('Delete this work card?')) return;
 
     data.cards = data.cards.filter(item => item.id !== id);
+
     saveData();
 }
 
@@ -841,7 +844,6 @@ async function copyCard(id) {
         toast('Clipboard unavailable; select and copy manually');
     }
 }
-
 
 /* =========================================
    MY SPIELS
@@ -877,7 +879,6 @@ function renderSpiels() {
                         ✏️
                     </button>
                 </div>
-
             </div>
         `).join('')
         : '<div class="empty">No spiels yet. Add your first spiel.</div>';
@@ -964,6 +965,7 @@ function deleteSpiel(id) {
     if (!confirm('Delete this spiel?')) return;
 
     data.spiels = data.spiels.filter(item => item.id !== id);
+
     saveData();
 }
 
@@ -981,7 +983,6 @@ async function copySpiel(id) {
     }
 }
 
-
 /* =========================================
    SPIEL CLICK EVENTS
 ========================================= */
@@ -993,7 +994,6 @@ function initializeSpielEvents() {
         grid.dataset.spielClickBound = 'true';
 
         grid.addEventListener('click', event => {
-
             const editButton = event.target.closest('[data-edit-spiel]');
 
             if (editButton) {
@@ -1039,7 +1039,6 @@ function initializeSpielEvents() {
 
     initializeSpielDragAndDrop();
 }
-
 
 /* =========================================
    DRAG & DROP FOR ALL CARDS
@@ -1088,7 +1087,6 @@ function initializeSpielDragAndDrop() {
                 draggedId = card.dataset[config.attribute];
 
                 card.classList.add('dragging');
-
                 suppressClick = true;
 
                 if (event.dataTransfer) {
@@ -1128,8 +1126,13 @@ function initializeSpielDragAndDrop() {
 
                 const items = data[config.collection];
 
-                const fromIndex = items.findIndex(item => item.id === draggedId);
-                const toIndex = items.findIndex(item => item.id === targetId);
+                const fromIndex = items.findIndex(
+                    item => item.id === draggedId
+                );
+
+                const toIndex = items.findIndex(
+                    item => item.id === targetId
+                );
 
                 if (fromIndex < 0 || toIndex < 0) return;
 
@@ -1159,12 +1162,12 @@ function initializeSpielDragAndDrop() {
 
                 event.preventDefault();
                 event.stopPropagation();
+
                 suppressClick = false;
             }, true);
         });
     });
 }
-
 
 /* =========================================
    GENERAL MODAL
@@ -1172,8 +1175,11 @@ function initializeSpielDragAndDrop() {
 
 function showModal(title, body, onSave) {
     document.getElementById('modalTitle').textContent = title;
+
     document.getElementById('modalBody').innerHTML = body;
+
     document.getElementById('modalBackdrop').classList.add('show');
+
     document.getElementById('modalSave').onclick = onSave;
 }
 
@@ -1181,20 +1187,21 @@ function closeModal() {
     document.getElementById('modalBackdrop').classList.remove('show');
 }
 
-
 /* =========================================
    SETTINGS
 ========================================= */
 
 function saveSettings() {
     data.settings = {
-        brand: document.getElementById('settingBrand').value.trim() || 'WorkDesk',
-        welcome: document.getElementById('settingWelcome').value.trim() || 'Welcome back.'
+        brand:
+            document.getElementById('settingBrand').value.trim() || 'WorkDesk',
+
+        welcome:
+            document.getElementById('settingWelcome').value.trim() || 'Welcome back.'
     };
 
     saveData();
 }
-
 
 /* =========================================
    RENDER EVERYTHING
@@ -1235,7 +1242,6 @@ function renderAll() {
     renderSpiels();
 }
 
-
 /* =========================================
    EXPORT DATA
 ========================================= */
@@ -1249,6 +1255,7 @@ function exportData() {
     const link = document.createElement('a');
 
     link.href = URL.createObjectURL(blob);
+
     link.download = 'workdesk-backup-' +
         new Date().toISOString().slice(0, 10) + '.json';
 
@@ -1258,7 +1265,6 @@ function exportData() {
 
     toast('Backup exported');
 }
-
 
 /* =========================================
    IMPORT DATA
@@ -1289,7 +1295,9 @@ function importData(event) {
 
             if (confirm('Import this backup? It will replace the current dashboard data.')) {
                 data = imported;
+
                 saveData();
+
                 toast('Backup restored');
             }
 
@@ -1302,7 +1310,6 @@ function importData(event) {
 
     reader.readAsText(file);
 }
-
 
 /* =========================================
    CLEAR DATA
@@ -1326,11 +1333,162 @@ function clearData() {
     saveData();
 }
 
+/* =========================================
+   STORE ACTIVATION MESSAGE GENERATOR
+========================================= */
+
+function extractShopifyStores(text) {
+    const matches = text.match(
+        /[a-zA-Z0-9][a-zA-Z0-9-]*\.myshopify\.com/gi
+    ) || [];
+
+    return [...new Set(
+        matches.map(store => store.toLowerCase())
+    )];
+}
+
+function generateActivationMessage() {
+    const input = document.getElementById('activationInput');
+    const output = document.getElementById('activationOutput');
+    const status = document.getElementById('activationStatus');
+
+    if (!input || !output) return;
+
+    const stores = extractShopifyStores(input.value);
+
+    if (!stores.length) {
+        output.value = '';
+
+        if (status) {
+            status.textContent = 'No Shopify store links found.';
+        }
+
+        toast('No Shopify stores found');
+        return;
+    }
+
+    // ONE STORE
+    if (stores.length === 1) {
+        output.value = `Store: ${stores[0]} is now active.`;
+    }
+
+    // MULTIPLE STORES
+    else {
+        output.value =
+            'Successfully activated the following stores:\n\n' +
+            stores.map(store => '- ' + store).join('\n');
+    }
+
+    if (status) {
+        status.textContent =
+            stores.length +
+            ' store(s) included. Click the message to copy.';
+    }
+
+    toast('Activation message generated ✓');
+}
+
+function clearActivationMessage() {
+    const input = document.getElementById('activationInput');
+    const output = document.getElementById('activationOutput');
+    const status = document.getElementById('activationStatus');
+
+    if (input) input.value = '';
+    if (output) output.value = '';
+
+    if (status) {
+        status.textContent = 'No message generated yet.';
+    }
+
+    if (input) input.focus();
+
+    toast('Activation generator cleared');
+}
+
+function initializeActivationGenerator() {
+    const input = document.getElementById('activationInput');
+    const output = document.getElementById('activationOutput');
+    const status = document.getElementById('activationStatus');
+
+    if (!input || !output || output.dataset.copyBound === 'true') {
+        return;
+    }
+
+    output.dataset.copyBound = 'true';
+
+    // Click generated message to copy.
+    output.addEventListener('click', async () => {
+        if (!output.value.trim()) {
+            toast('No activation message to copy');
+            return;
+        }
+
+        try {
+            if (!navigator.clipboard || !window.isSecureContext) {
+                throw new Error('Clipboard unavailable');
+            }
+
+            await navigator.clipboard.writeText(output.value);
+
+            if (status) {
+                status.textContent =
+                    'Activation message copied successfully ✓';
+            }
+
+            toast('Activation message copied ✓');
+
+        } catch (error) {
+            output.focus();
+            output.select();
+
+            try {
+                if (document.execCommand('copy')) {
+                    if (status) {
+                        status.textContent =
+                            'Activation message copied successfully ✓';
+                    }
+
+                    toast('Activation message copied ✓');
+
+                } else {
+                    toast('Please copy the message manually');
+                }
+
+            } catch (fallbackError) {
+                toast('Please copy the message manually');
+            }
+        }
+    });
+
+    // Automatically generate after pasting.
+    input.addEventListener('paste', () => {
+        setTimeout(generateActivationMessage, 0);
+    });
+
+    // Automatically generate after typing pauses.
+    input.addEventListener('input', () => {
+        clearTimeout(Number(input.dataset.activationTimer || 0));
+
+        input.dataset.activationTimer = String(
+            setTimeout(() => {
+                if (input.value.trim()) {
+                    generateActivationMessage();
+                }
+
+                delete input.dataset.activationTimer;
+            }, 700)
+        );
+    });
+}
 
 /* =========================================
    INITIALIZE
 ========================================= */
 
 initializeSpielEvents();
+
 initializeLinkCleaner();
+
+initializeActivationGenerator();
+
 renderAll();

@@ -12,7 +12,6 @@ const starter = {
         brand: 'WorkDesk',
         welcome: 'Good day, welcome back.'
     },
-
     links: [
         {
             id: 'l1',
@@ -63,7 +62,6 @@ const starter = {
             category: 'Tools'
         }
     ],
-
     cards: [
         {
             id: 'c1',
@@ -80,37 +78,28 @@ const starter = {
             updated: Date.now()
         }
     ],
-
     spiels: []
 };
 
-/* =========================================
-   DATA
-========================================= */
+/* DATA */
 
 function loadData() {
     try {
         const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
 
         if (saved && saved.links && saved.cards) {
-            saved.spiels = Array.isArray(saved.spiels)
-                ? saved.spiels
-                : [];
-
+            saved.spiels = Array.isArray(saved.spiels) ? saved.spiels : [];
             saved.settings = saved.settings || starter.settings;
-
             return saved;
         }
 
         return structuredClone(starter);
-
     } catch (error) {
         return structuredClone(starter);
     }
 }
 
 let data = loadData();
-
 let editLinkId = null;
 let editCardId = null;
 let editSpielId = null;
@@ -118,11 +107,8 @@ let editSpielId = null;
 function saveData() {
     try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-
         renderAll();
-
         toast('Saved automatically ✓');
-
     } catch (error) {
         toast('Save failed: browser storage may be full');
         console.error('WorkDesk storage error', error);
@@ -136,7 +122,6 @@ function uid() {
 
 function toast(message) {
     const el = document.getElementById('toast');
-
     if (!el) return;
 
     el.textContent = message;
@@ -166,19 +151,13 @@ function safeURL(url) {
 
     try {
         const parsed = new URL(url);
-
-        return ['http:', 'https:'].includes(parsed.protocol)
-            ? parsed.href
-            : null;
-
+        return ['http:', 'https:'].includes(parsed.protocol) ? parsed.href : null;
     } catch {
         return null;
     }
 }
 
-/* =========================================
-   PAGE NAVIGATION
-========================================= */
+/* PAGE NAVIGATION */
 
 function goPage(page) {
     document.querySelectorAll('.page').forEach(el => {
@@ -213,9 +192,7 @@ document.querySelectorAll('.nav button').forEach(button => {
     });
 });
 
-/* =========================================
-   QUICK LINKS
-========================================= */
+/* QUICK LINKS */
 
 function linkHTML(link) {
     return `
@@ -246,9 +223,7 @@ function linkHTML(link) {
                 </button>
 
                 <div class="mini-actions">
-                    <button onclick="editLink('${escapeHTML(link.id)}')">
-                        Edit
-                    </button>
+                    <button onclick="editLink('${escapeHTML(link.id)}')">Edit</button>
 
                     <button class="danger"
                             onclick="deleteLink('${escapeHTML(link.id)}')">
@@ -298,7 +273,6 @@ function renderLinks() {
 
 function openExternal(id) {
     const link = data.links.find(item => item.id === id);
-
     if (!link) return;
 
     const url = safeURL(link.url);
@@ -333,38 +307,29 @@ function openLinkModal(id = null) {
 
                 <div class="field">
                     <label>URL *</label>
-                    <input id="fURL"
-                           value="${escapeHTML(link.url)}"
-                           placeholder="https://example.com"
-                           required>
+                    <input id="fURL" value="${escapeHTML(link.url)}"
+                           placeholder="https://example.com" required>
                 </div>
 
                 <div class="field">
                     <label>Icon / emoji</label>
-                    <input id="fIcon"
-                           value="${escapeHTML(link.icon)}"
-                           maxlength="8">
+                    <input id="fIcon" value="${escapeHTML(link.icon)}" maxlength="8">
                 </div>
 
                 <div class="field">
                     <label>Description</label>
-                    <input id="fDesc"
-                           value="${escapeHTML(link.description || '')}">
+                    <input id="fDesc" value="${escapeHTML(link.description || '')}">
                 </div>
 
                 <div class="field">
                     <label>Category</label>
-                    <input id="fCat"
-                           value="${escapeHTML(link.category || 'Work')}">
+                    <input id="fCat" value="${escapeHTML(link.category || 'Work')}">
                 </div>
             </div>
         `,
         () => {
             const title = document.getElementById('fTitle').value.trim();
-
-            const url = safeURL(
-                document.getElementById('fURL').value
-            );
+            const url = safeURL(document.getElementById('fURL').value);
 
             if (!title || !url) {
                 toast('Enter a name and valid URL');
@@ -402,24 +367,17 @@ function deleteLink(id) {
     if (!confirm('Delete this quick link?')) return;
 
     data.links = data.links.filter(item => item.id !== id);
-
     saveData();
 }
 
-/* =========================================
-   LINK CLEANER
-========================================= */
+/* LINK CLEANER */
 
 function extractCleanLinks(text) {
     if (!text || !text.trim()) return [];
 
     const links = [];
-
-    const shopifyRegex =
-        /[a-zA-Z0-9][a-zA-Z0-9-]*\.myshopify\.com/gi;
-
-    const urlRegex =
-        /(?:https?:\/\/|www\.)[^\s<>"']+/gi;
+    const shopifyRegex = /[a-zA-Z0-9][a-zA-Z0-9-]*\.myshopify\.com/gi;
+    const urlRegex = /(?:https?:\/\/|www\.)[^\s<>"']+/gi;
 
     for (const match of text.matchAll(shopifyRegex)) {
         links.push(match[0].toLowerCase());
@@ -435,8 +393,7 @@ function extractCleanLinks(text) {
         if (value) links.push(value);
     }
 
-    const plainDomainRegex =
-        /(?:^|[\s([{])([a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)+(?:\/[^\s<>"']*)?)/gim;
+    const plainDomainRegex = /(?:^|[\s([{])([a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)+(?:\/[^\s<>"']*)?)/gim;
 
     for (const match of text.matchAll(plainDomainRegex)) {
         const value = match[1]
@@ -449,15 +406,10 @@ function extractCleanLinks(text) {
         }
     }
 
-    return [...new Set(
-        links.map(link => link.trim()).filter(Boolean)
-    )];
+    return [...new Set(links.map(link => link.trim()).filter(Boolean))];
 }
 
-/* =========================================
-   GENERATE CLEAN LINKS
-   ALWAYS REPLACES PREVIOUS RESULTS
-========================================= */
+/* GENERATE CLEAN LINKS */
 
 function generateCleanLinks(options = {}) {
     const input = document.getElementById('linkCleanerInput');
@@ -467,12 +419,10 @@ function generateCleanLinks(options = {}) {
     if (!input || !output) return;
 
     const pastedText = input.value.trim();
-
     if (!pastedText) return;
 
     const newLinks = extractCleanLinks(pastedText);
 
-    // Replace previous output instead of appending.
     output.value = newLinks.join('\n');
 
     if (newLinks.length > 0) {
@@ -485,7 +435,6 @@ function generateCleanLinks(options = {}) {
         if (!options.silent) {
             toast('New clean links generated ✓');
         }
-
     } else {
         if (status) {
             status.textContent = 'No valid links found.';
@@ -496,20 +445,14 @@ function generateCleanLinks(options = {}) {
         }
     }
 
-    // Clear input after generating.
     input.value = '';
 
-    // Focus input again for next paste.
     if (options.focus !== false) {
         input.focus();
     }
 }
 
-/* =========================================
-   AUTOMATIC LINK CLEANER
-   PASTE = GENERATE IMMEDIATELY
-   TYPING = GENERATE AFTER PAUSE
-========================================= */
+/* AUTOMATIC LINK CLEANER */
 
 function initializeLinkCleaner() {
     const input = document.getElementById('linkCleanerInput');
@@ -518,7 +461,6 @@ function initializeLinkCleaner() {
     if (input && input.dataset.autoCleanBound !== 'true') {
         input.dataset.autoCleanBound = 'true';
 
-        // Automatically process pasted content.
         input.addEventListener('paste', () => {
             setTimeout(() => {
                 if (input.value.trim()) {
@@ -530,7 +472,6 @@ function initializeLinkCleaner() {
             }, 0);
         });
 
-        // Automatically process manually typed content.
         input.addEventListener('input', () => {
             if (input.dataset.autoCleanTimer) {
                 clearTimeout(Number(input.dataset.autoCleanTimer));
@@ -551,7 +492,6 @@ function initializeLinkCleaner() {
         });
     }
 
-    // Clicking output copies all links.
     if (output && output.dataset.autoCopyBound !== 'true') {
         output.dataset.autoCopyBound = 'true';
 
@@ -565,9 +505,7 @@ function initializeLinkCleaner() {
     }
 }
 
-/* =========================================
-   COPY ALL CLEANED LINKS
-========================================= */
+/* COPY ALL CLEANED LINKS */
 
 async function copyCleanLinks() {
     const output = document.getElementById('linkCleanerOutput');
@@ -592,7 +530,6 @@ async function copyCleanLinks() {
         }
 
         toast('All cleaned links copied ✓');
-
     } catch (error) {
         output.focus();
         output.select();
@@ -607,20 +544,16 @@ async function copyCleanLinks() {
                 }
 
                 toast('All cleaned links copied ✓');
-
             } else {
                 toast('Please copy the links manually');
             }
-
         } catch (fallbackError) {
             toast('Please copy the links manually');
         }
     }
 }
 
-/* =========================================
-   CLEAR LINK CLEANER
-========================================= */
+/* CLEAR LINK CLEANER */
 
 function clearLinkCleaner() {
     const input = document.getElementById('linkCleanerInput');
@@ -636,24 +569,15 @@ function clearLinkCleaner() {
         }
     }
 
-    if (output) {
-        output.value = '';
-    }
+    if (output) output.value = '';
+    if (status) status.textContent = 'No links generated yet.';
 
-    if (status) {
-        status.textContent = 'No links generated yet.';
-    }
-
-    if (input) {
-        input.focus();
-    }
+    if (input) input.focus();
 
     toast('Link cleaner cleared');
 }
 
-/* =========================================
-   WORK CARDS
-========================================= */
+/* WORK CARDS */
 
 function cardHTML(card) {
     return `
@@ -676,13 +600,8 @@ function cardHTML(card) {
             </div>
 
             <div class="card-footer">
-                <button onclick="copyCard('${escapeHTML(card.id)}')">
-                    Copy
-                </button>
-
-                <button onclick="editCard('${escapeHTML(card.id)}')">
-                    Edit
-                </button>
+                <button onclick="copyCard('${escapeHTML(card.id)}')">Copy</button>
+                <button onclick="editCard('${escapeHTML(card.id)}')">Edit</button>
 
                 <button class="danger"
                         onclick="deleteCard('${escapeHTML(card.id)}')">
@@ -705,15 +624,13 @@ function renderCards() {
     }
 
     const page = document.getElementById('page-cards');
-
     if (!page || !page.classList.contains('active')) return;
 
     const search = (
         document.getElementById('cardSearch')?.value || ''
     ).toLowerCase();
 
-    const category =
-        document.getElementById('cardCategory')?.value || '';
+    const category = document.getElementById('cardCategory')?.value || '';
 
     const filtered = data.cards.filter(card => {
         const matchesSearch = (
@@ -766,30 +683,23 @@ function openCardModal(id = null) {
             <div class="form-grid">
                 <div class="field">
                     <label>Card title *</label>
-                    <input id="fTitle"
-                           value="${escapeHTML(card.title)}"
-                           required>
+                    <input id="fTitle" value="${escapeHTML(card.title)}" required>
                 </div>
 
                 <div class="field">
                     <label>Category</label>
-                    <input id="fCat"
-                           value="${escapeHTML(card.category || 'Notes')}">
+                    <input id="fCat" value="${escapeHTML(card.category || 'Notes')}">
                 </div>
 
                 <div class="field">
                     <label>Information / notes *</label>
-                    <textarea id="fContent"
-                              rows="8">${escapeHTML(card.content || '')}</textarea>
+                    <textarea id="fContent" rows="8">${escapeHTML(card.content || '')}</textarea>
                 </div>
             </div>
         `,
         () => {
-            const title =
-                document.getElementById('fTitle').value.trim();
-
-            const content =
-                document.getElementById('fContent').value;
+            const title = document.getElementById('fTitle').value.trim();
+            const content = document.getElementById('fContent').value;
 
             if (!title) {
                 toast('Enter a card title');
@@ -799,8 +709,7 @@ function openCardModal(id = null) {
             const item = {
                 id: id || uid(),
                 title,
-                category:
-                    document.getElementById('fCat').value.trim() || 'General',
+                category: document.getElementById('fCat').value.trim() || 'General',
                 content,
                 updated: Date.now()
             };
@@ -827,31 +736,24 @@ function deleteCard(id) {
     if (!confirm('Delete this work card?')) return;
 
     data.cards = data.cards.filter(item => item.id !== id);
-
     saveData();
 }
 
 async function copyCard(id) {
     const card = data.cards.find(item => item.id === id);
-
     if (!card) return;
 
     try {
         await navigator.clipboard.writeText(card.content);
         toast('Card content copied');
-
     } catch {
         toast('Clipboard unavailable; select and copy manually');
     }
 }
-
-/* =========================================
-   MY SPIELS
-========================================= */
+/* MY SPIELS */
 
 function renderSpiels() {
     const grid = document.getElementById('spielsGrid');
-
     if (!grid) return;
 
     grid.innerHTML = data.spiels.length
@@ -903,7 +805,6 @@ function openSpielModal(id = null) {
     }
 
     modalTitle.textContent = id ? 'Edit spiel' : 'Add new spiel';
-
     titleInput.value = spiel.title || '';
     contentInput.value = spiel.content || '';
 
@@ -965,27 +866,22 @@ function deleteSpiel(id) {
     if (!confirm('Delete this spiel?')) return;
 
     data.spiels = data.spiels.filter(item => item.id !== id);
-
     saveData();
 }
 
 async function copySpiel(id) {
     const spiel = data.spiels.find(item => item.id === id);
-
     if (!spiel) return;
 
     try {
         await navigator.clipboard.writeText(spiel.content || '');
         toast('Spiel copied ✓');
-
     } catch {
         toast('Clipboard unavailable. Please copy manually.');
     }
 }
 
-/* =========================================
-   SPIEL CLICK EVENTS
-========================================= */
+/* SPIEL CLICK EVENTS */
 
 function initializeSpielEvents() {
     const grid = document.getElementById('spielsGrid');
@@ -999,7 +895,6 @@ function initializeSpielEvents() {
             if (editButton) {
                 event.preventDefault();
                 event.stopPropagation();
-
                 editSpiel(editButton.dataset.editSpiel);
                 return;
             }
@@ -1013,7 +908,6 @@ function initializeSpielEvents() {
 
         grid.addEventListener('keydown', event => {
             if (event.key !== 'Enter' && event.key !== ' ') return;
-
             if (event.target.closest('.spiel-actions')) return;
 
             const card = event.target.closest('[data-spiel-card]');
@@ -1040,9 +934,7 @@ function initializeSpielEvents() {
     initializeSpielDragAndDrop();
 }
 
-/* =========================================
-   DRAG & DROP FOR ALL CARDS
-========================================= */
+/* DRAG & DROP FOR CARDS, LINKS AND SPIELS */
 
 function initializeSpielDragAndDrop() {
     const configurations = [
@@ -1081,11 +973,9 @@ function initializeSpielDragAndDrop() {
 
             container.addEventListener('dragstart', event => {
                 const card = event.target.closest(config.itemSelector);
-
                 if (!card) return;
 
                 draggedId = card.dataset[config.attribute];
-
                 card.classList.add('dragging');
                 suppressClick = true;
 
@@ -1117,31 +1007,22 @@ function initializeSpielDragAndDrop() {
                 event.preventDefault();
 
                 const target = event.target.closest(config.itemSelector);
-
                 if (!target) return;
 
                 const targetId = target.dataset[config.attribute];
-
                 if (targetId === draggedId) return;
 
                 const items = data[config.collection];
 
-                const fromIndex = items.findIndex(
-                    item => item.id === draggedId
-                );
-
-                const toIndex = items.findIndex(
-                    item => item.id === targetId
-                );
+                const fromIndex = items.findIndex(item => item.id === draggedId);
+                const toIndex = items.findIndex(item => item.id === targetId);
 
                 if (fromIndex < 0 || toIndex < 0) return;
 
                 const movedItem = items.splice(fromIndex, 1)[0];
-
                 items.splice(toIndex, 0, movedItem);
 
                 draggedId = null;
-
                 saveData();
             });
 
@@ -1162,24 +1043,18 @@ function initializeSpielDragAndDrop() {
 
                 event.preventDefault();
                 event.stopPropagation();
-
                 suppressClick = false;
             }, true);
         });
     });
 }
 
-/* =========================================
-   GENERAL MODAL
-========================================= */
+/* GENERAL MODAL */
 
 function showModal(title, body, onSave) {
     document.getElementById('modalTitle').textContent = title;
-
     document.getElementById('modalBody').innerHTML = body;
-
     document.getElementById('modalBackdrop').classList.add('show');
-
     document.getElementById('modalSave').onclick = onSave;
 }
 
@@ -1187,25 +1062,18 @@ function closeModal() {
     document.getElementById('modalBackdrop').classList.remove('show');
 }
 
-/* =========================================
-   SETTINGS
-========================================= */
+/* SETTINGS */
 
 function saveSettings() {
     data.settings = {
-        brand:
-            document.getElementById('settingBrand').value.trim() || 'WorkDesk',
-
-        welcome:
-            document.getElementById('settingWelcome').value.trim() || 'Welcome back.'
+        brand: document.getElementById('settingBrand').value.trim() || 'WorkDesk',
+        welcome: document.getElementById('settingWelcome').value.trim() || 'Welcome back.'
     };
 
     saveData();
 }
 
-/* =========================================
-   RENDER EVERYTHING
-========================================= */
+/* RENDER EVERYTHING */
 
 function renderAll() {
     data.spiels = data.spiels || [];
@@ -1242,9 +1110,7 @@ function renderAll() {
     renderSpiels();
 }
 
-/* =========================================
-   EXPORT DATA
-========================================= */
+/* EXPORT DATA */
 
 function exportData() {
     const blob = new Blob(
@@ -1253,26 +1119,20 @@ function exportData() {
     );
 
     const link = document.createElement('a');
-
     link.href = URL.createObjectURL(blob);
-
     link.download = 'workdesk-backup-' +
         new Date().toISOString().slice(0, 10) + '.json';
 
     link.click();
-
     URL.revokeObjectURL(link.href);
 
     toast('Backup exported');
 }
 
-/* =========================================
-   IMPORT DATA
-========================================= */
+/* IMPORT DATA */
 
 function importData(event) {
     const file = event.target.files[0];
-
     if (!file) return;
 
     const reader = new FileReader();
@@ -1295,12 +1155,9 @@ function importData(event) {
 
             if (confirm('Import this backup? It will replace the current dashboard data.')) {
                 data = imported;
-
                 saveData();
-
                 toast('Backup restored');
             }
-
         } catch {
             alert('Invalid WorkDesk backup file.');
         }
@@ -1311,9 +1168,7 @@ function importData(event) {
     reader.readAsText(file);
 }
 
-/* =========================================
-   CLEAR DATA
-========================================= */
+/* CLEAR DATA */
 
 function clearData() {
     if (!confirm('This will permanently remove all dashboard links, cards, and spiels from this browser. Continue?')) {
@@ -1333,18 +1188,11 @@ function clearData() {
     saveData();
 }
 
-/* =========================================
-   STORE ACTIVATION MESSAGE GENERATOR
-========================================= */
+/* STORE ACTIVATION MESSAGE GENERATOR */
 
 function extractShopifyStores(text) {
-    const matches = text.match(
-        /[a-zA-Z0-9][a-zA-Z0-9-]*\.myshopify\.com/gi
-    ) || [];
-
-    return [...new Set(
-        matches.map(store => store.toLowerCase())
-    )];
+    const matches = text.match(/[a-zA-Z0-9][a-zA-Z0-9-]*\.myshopify\.com/gi) || [];
+    return [...new Set(matches.map(store => store.toLowerCase()))];
 }
 
 function generateActivationMessage() {
@@ -1359,30 +1207,17 @@ function generateActivationMessage() {
     if (!stores.length) {
         output.value = '';
 
-        if (status) {
-            status.textContent = 'No Shopify store links found.';
-        }
+        if (status) status.textContent = 'No Shopify store links found.';
 
         toast('No Shopify stores found');
         return;
     }
 
-    // ONE STORE
-    if (stores.length === 1) {
-        output.value = `Store: ${stores[0]} is now active.`;
-    }
-
-    // MULTIPLE STORES
-    else {
-        output.value =
-            'Successfully activated the following stores:\n\n' +
-            stores.map(store => '- ' + store).join('\n');
-    }
+    output.value = 'Successfully activated the following stores:\n\n' +
+        stores.map(store => '- ' + store).join('\n');
 
     if (status) {
-        status.textContent =
-            stores.length +
-            ' store(s) included. Click the message to copy.';
+        status.textContent = stores.length + ' store(s) included. Click the message to copy.';
     }
 
     toast('Activation message generated ✓');
@@ -1395,10 +1230,7 @@ function clearActivationMessage() {
 
     if (input) input.value = '';
     if (output) output.value = '';
-
-    if (status) {
-        status.textContent = 'No message generated yet.';
-    }
+    if (status) status.textContent = 'No message generated yet.';
 
     if (input) input.focus();
 
@@ -1410,13 +1242,10 @@ function initializeActivationGenerator() {
     const output = document.getElementById('activationOutput');
     const status = document.getElementById('activationStatus');
 
-    if (!input || !output || output.dataset.copyBound === 'true') {
-        return;
-    }
+    if (!input || !output || output.dataset.copyBound === 'true') return;
 
     output.dataset.copyBound = 'true';
 
-    // Click generated message to copy.
     output.addEventListener('click', async () => {
         if (!output.value.trim()) {
             toast('No activation message to copy');
@@ -1431,12 +1260,10 @@ function initializeActivationGenerator() {
             await navigator.clipboard.writeText(output.value);
 
             if (status) {
-                status.textContent =
-                    'Activation message copied successfully ✓';
+                status.textContent = 'Activation message copied successfully ✓';
             }
 
             toast('Activation message copied ✓');
-
         } catch (error) {
             output.focus();
             output.select();
@@ -1444,51 +1271,36 @@ function initializeActivationGenerator() {
             try {
                 if (document.execCommand('copy')) {
                     if (status) {
-                        status.textContent =
-                            'Activation message copied successfully ✓';
+                        status.textContent = 'Activation message copied successfully ✓';
                     }
 
                     toast('Activation message copied ✓');
-
                 } else {
                     toast('Please copy the message manually');
                 }
-
             } catch (fallbackError) {
                 toast('Please copy the message manually');
             }
         }
     });
 
-    // Automatically generate after pasting.
     input.addEventListener('paste', () => {
         setTimeout(generateActivationMessage, 0);
     });
 
-    // Automatically generate after typing pauses.
     input.addEventListener('input', () => {
         clearTimeout(Number(input.dataset.activationTimer || 0));
 
-        input.dataset.activationTimer = String(
-            setTimeout(() => {
-                if (input.value.trim()) {
-                    generateActivationMessage();
-                }
-
-                delete input.dataset.activationTimer;
-            }, 700)
-        );
+        input.dataset.activationTimer = String(setTimeout(() => {
+            if (input.value.trim()) generateActivationMessage();
+            delete input.dataset.activationTimer;
+        }, 700));
     });
 }
 
-/* =========================================
-   INITIALIZE
-========================================= */
+/* INITIALIZE */
 
 initializeSpielEvents();
-
 initializeLinkCleaner();
-
 initializeActivationGenerator();
-
 renderAll();

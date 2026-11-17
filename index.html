@@ -202,12 +202,33 @@ https://i45ivk-hx.myshopify.com"></textarea>
                     </div>
 
                     <div id="notesEditorContent" class="notes-editor-content" hidden>
-                        <div class="notes-editor-top"></div>
+                        <div class="notes-editor-top">
+                            <span id="notesEditorStatus">Ready</span>
+                            <span class="notes-drop-hint">Paste text or screenshots, or drag files here</span>
+                        </div>
                         <input type="text" id="noteTitle" class="notes-title-input" placeholder="Untitled note" maxlength="120">
                         <div class="notes-editor-meta">
                             <span id="noteUpdated">Not saved yet</span>
                         </div>
-                        <textarea id="noteContent" class="notes-content-input" placeholder="Start writing your note here..."></textarea>
+                        <textarea id="noteContent" class="notes-content-input" placeholder="Start writing your note here...
+
+You can paste text with Ctrl + V, paste screenshots, or drop files into this editor."></textarea>
+
+                        <section class="notes-attachments" aria-label="Note attachments">
+                            <div class="notes-attachments-header">
+                                <div>
+                                    <h3>Attachments</h3>
+                                    <p class="muted">Images, screenshots, PDFs, and other files</p>
+                                </div>
+                                <span id="noteImageCount">0 files</span>
+                            </div>
+                            <div class="notes-attachment-actions">
+                                <button type="button" class="primary" id="attachImageBtn">＋ Attach files</button>
+                                <input type="file" id="noteImageInput" accept="image/*,.pdf,.txt,.md,.csv,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip" multiple hidden>
+                            </div>
+                            <div id="noteImageGallery" class="notes-image-gallery" aria-live="polite"></div>
+                            <p class="notes-attachment-hint">Tip: click inside the note and press Ctrl + V to paste a screenshot. You can also drag files directly into this editor. Maximum 25 MB per file.</p>
+                        </section>
                     </div>
                 </section>
             </div>

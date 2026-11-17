@@ -1,1306 +1,842 @@
-/* =========================================
-   WORKDESK - MAIN JAVASCRIPT
-   Quick Links, Work Cards, My Spiels,
-   Link Cleaner, Drag & Drop, Settings,
-   Import & Export
-========================================= */
-
-const STORAGE_KEY = 'workdesk_dashboard_v1';
-
-const starter = {
-    settings: {
-        brand: 'WorkDesk',
-        welcome: 'Good day, welcome back.'
-    },
-    links: [
-        {
-            id: 'l1',
-            title: 'Wetracked.io',
-            url: 'https://wetracked.io',
-            icon: '🌐',
-            description: 'Tracking and merchant workspace',
-            category: 'Work'
-        },
-        {
-            id: 'l2',
-            title: 'Slack',
-            url: 'https://slack.com',
-            icon: '💬',
-            description: 'Team communication',
-            category: 'Work'
-        },
-        {
-            id: 'l3',
-            title: 'HubSpot',
-            url: 'https://app.hubspot.com',
-            icon: '🧡',
-            description: 'CRM and customer support',
-            category: 'Work'
-        },
-        {
-            id: 'l4',
-            title: 'Gmail',
-            url: 'https://mail.google.com',
-            icon: '✉️',
-            description: 'Email inbox',
-            category: 'Work'
-        },
-        {
-            id: 'l5',
-            title: 'Shopify',
-            url: 'https://admin.shopify.com',
-            icon: '🛍️',
-            description: 'Store administration',
-            category: 'Work'
-        },
-        {
-            id: 'l6',
-            title: 'ChatGPT',
-            url: 'https://chatgpt.com',
-            icon: '✨',
-            description: 'AI assistant',
-            category: 'Tools'
-        }
-    ],
-    cards: [
-        {
-            id: 'c1',
-            title: 'Support notes',
-            category: 'Notes',
-            content: 'Add your common work notes here.',
-            updated: Date.now()
-        },
-        {
-            id: 'c2',
-            title: 'Merchant follow-up template',
-            category: 'Templates',
-            content: 'Hi there, just following up on this. Please let me know if you need any further assistance.',
-            updated: Date.now()
-        }
-    ],
-    spiels: []
-};
-
-/* DATA */
-
-function loadData() {
-    try {
-        const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
-
-        if (saved && saved.links && saved.cards) {
-            saved.spiels = Array.isArray(saved.spiels) ? saved.spiels : [];
-            saved.settings = saved.settings || starter.settings;
-            return saved;
-        }
-
-        return structuredClone(starter);
-    } catch (error) {
-        return structuredClone(starter);
-    }
-}
-
-let data = loadData();
-let editLinkId = null;
-let editCardId = null;
-let editSpielId = null;
-
-function saveData() {
-    try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-        renderAll();
-        toast('Saved automatically ✓');
-    } catch (error) {
-        toast('Save failed: browser storage may be full');
-        console.error('WorkDesk storage error', error);
-    }
-}
-
-function uid() {
-    return Date.now().toString(36) +
-        Math.random().toString(36).slice(2, 8);
-}
-
-function toast(message) {
-    const el = document.getElementById('toast');
-    if (!el) return;
-
-    el.textContent = message;
-    el.classList.add('show');
-
-    setTimeout(() => {
-        el.classList.remove('show');
-    }, 1800);
-}
-
-function escapeHTML(value = '') {
-    return String(value).replace(/[&<>"']/g, char => ({
-        '&': '&amp;',
-        '<': '&lt;',
-        '>': '&gt;',
-        '"': '&quot;',
-        "'": '&#39;'
-    })[char]);
-}
-
-function safeURL(url) {
-    url = (url || '').trim();
-
-    if (!/^https?:\/\//i.test(url)) {
-        url = 'https://' + url;
-    }
-
-    try {
-        const parsed = new URL(url);
-        return ['http:', 'https:'].includes(parsed.protocol) ? parsed.href : null;
-    } catch {
-        return null;
-    }
-}
-
-/* PAGE NAVIGATION */
-
-function goPage(page) {
-    document.querySelectorAll('.page').forEach(el => {
-        el.classList.remove('active');
-    });
-
-    const target = document.getElementById('page-' + page);
-
-    if (target) {
-        target.classList.add('active');
-    }
-
-    document.querySelectorAll('.nav button').forEach(button => {
-        button.classList.toggle(
-            'active',
-            button.dataset.page === page
-        );
-    });
-
-    if (page === 'links') renderLinks();
-    if (page === 'cards') renderCards();
-    if (page === 'spiels') renderSpiels();
-
-    if (page === 'notes' && typeof renderNotes === 'function') {
-        renderNotes();
-    }
-}
-
-document.querySelectorAll('.nav button').forEach(button => {
-    button.addEventListener('click', () => {
-        goPage(button.dataset.page);
-    });
-});
-
-/* QUICK LINKS */
-
-function linkHTML(link) {
-    return `
-        <div class="link-card"
-             data-link-card="${escapeHTML(link.id)}"
-             draggable="true">
-
-            <div class="link-top">
-                <div class="link-icon">
-                    ${escapeHTML(link.icon || '🔗')}
-                </div>
-
-                <div>
-                    <div class="link-title">
-                        ${escapeHTML(link.title)}
-                    </div>
-
-                    <div class="link-desc">
-                        ${escapeHTML(link.description || link.category || 'Quick link')}
-                    </div>
-                </div>
-            </div>
-
-            <div class="link-actions">
-                <button class="open-link"
-                        onclick="openExternal('${escapeHTML(link.id)}')">
-                    Open ↗
-                </button>
-
-                <div class="mini-actions">
-                    <button onclick="editLink('${escapeHTML(link.id)}')">Edit</button>
-
-                    <button class="danger"
-                            onclick="deleteLink('${escapeHTML(link.id)}')">
-                        Delete
-                    </button>
-                </div>
-            </div>
-        </div>
-    `;
-}
-
-function renderLinks() {
-    const dashboard = document.getElementById('dashboardLinks');
-
-    if (dashboard) {
-        dashboard.innerHTML = data.links
-            .slice(0, 8)
-            .map(linkHTML)
-            .join('') ||
-            '<div class="empty">Add a quick link to get started.</div>';
-    }
-
-    const page = document.getElementById('page-links');
-
-    if (!page || !page.classList.contains('active')) return;
-
-    const search = (
-        document.getElementById('linkSearch')?.value || ''
-    ).toLowerCase();
-
-    const filtered = data.links.filter(link => {
-        return (
-            (link.title + ' ' + link.description + ' ' + link.category)
-                .toLowerCase()
-                .includes(search)
-        );
-    });
-
-    const container = document.getElementById('allLinks');
-
-    if (container) {
-        container.innerHTML = filtered.length
-            ? filtered.map(linkHTML).join('')
-            : '<div class="empty">No links found. Add your first shortcut.</div>';
-    }
-}
-
-function openExternal(id) {
-    const link = data.links.find(item => item.id === id);
-    if (!link) return;
-
-    const url = safeURL(link.url);
-
-    if (!url) {
-        toast('Please edit this link: invalid URL');
-        return;
-    }
-
-    window.open(url, '_blank', 'noopener,noreferrer');
-}
-
-function openLinkModal(id = null) {
-    editLinkId = id;
-
-    const link = data.links.find(item => item.id === id) || {
-        title: '',
-        url: '',
-        icon: '🔗',
-        description: '',
-        category: 'Work'
-    };
-
-    showModal(
-        id ? 'Edit quick link' : 'Add quick link',
-        `
-            <div class="form-grid">
-                <div class="field">
-                    <label>Link name *</label>
-                    <input id="fTitle" value="${escapeHTML(link.title)}" required>
-                </div>
-
-                <div class="field">
-                    <label>URL *</label>
-                    <input id="fURL" value="${escapeHTML(link.url)}"
-                           placeholder="https://example.com" required>
-                </div>
-
-                <div class="field">
-                    <label>Icon / emoji</label>
-                    <input id="fIcon" value="${escapeHTML(link.icon)}" maxlength="8">
-                </div>
-
-                <div class="field">
-                    <label>Description</label>
-                    <input id="fDesc" value="${escapeHTML(link.description || '')}">
-                </div>
-
-                <div class="field">
-                    <label>Category</label>
-                    <input id="fCat" value="${escapeHTML(link.category || 'Work')}">
-                </div>
-            </div>
-        `,
-        () => {
-            const title = document.getElementById('fTitle').value.trim();
-            const url = safeURL(document.getElementById('fURL').value);
-
-            if (!title || !url) {
-                toast('Enter a name and valid URL');
-                return;
-            }
-
-            const item = {
-                id: id || uid(),
-                title,
-                url,
-                icon: document.getElementById('fIcon').value || '🔗',
-                description: document.getElementById('fDesc').value,
-                category: document.getElementById('fCat').value
-            };
-
-            if (id) {
-                data.links = data.links.map(old =>
-                    old.id === id ? item : old
-                );
-            } else {
-                data.links.unshift(item);
-            }
-
-            closeModal();
-            saveData();
-        }
-    );
-}
-
-function editLink(id) {
-    openLinkModal(id);
-}
-
-function deleteLink(id) {
-    if (!confirm('Delete this quick link?')) return;
-
-    data.links = data.links.filter(item => item.id !== id);
-    saveData();
-}
-
-/* LINK CLEANER */
-
-function extractCleanLinks(text) {
-    if (!text || !text.trim()) return [];
-
-    const links = [];
-    const shopifyRegex = /[a-zA-Z0-9][a-zA-Z0-9-]*\.myshopify\.com/gi;
-    const urlRegex = /(?:https?:\/\/|www\.)[^\s<>"']+/gi;
-
-    for (const match of text.matchAll(shopifyRegex)) {
-        links.push(match[0].toLowerCase());
-    }
-
-    for (const match of text.matchAll(urlRegex)) {
-        const value = match[0]
-            .replace(/^https?:\/\//i, '')
-            .replace(/^www\./i, '')
-            .replace(/^[([{]+/, '')
-            .replace(/[)\]}>.,!?;:]+$/, '');
-
-        if (value) links.push(value);
-    }
-
-    const plainDomainRegex = /(?:^|[\s([{])([a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)+(?:\/[^\s<>"']*)?)/gim;
-
-    for (const match of text.matchAll(plainDomainRegex)) {
-        const value = match[1]
-            .replace(/^[([{]+/, '')
-            .replace(/[)\]}>.,!?;:]+$/, '')
-            .replace(/^www\./i, '');
-
-        if (value && /\.[a-zA-Z]{2,}/.test(value)) {
-            links.push(value);
+/* =========================================================
+   WORKDESK NOTES
+   Auto-save + IndexedDB attachments + paste + drag/drop
+   Text stays in localStorage. Files stay in IndexedDB.
+========================================================= */
+
+(() => {
+    'use strict';
+
+    const NOTES_STORAGE_KEY = 'workdesk_notes_v1';
+    const DB_NAME = 'WorkDeskNotesDB';
+    const DB_VERSION = 2;
+    const STORE_NAME = 'attachments';
+    const MAX_FILE_SIZE = 25 * 1024 * 1024;
+
+    let notes = loadNotes();
+    let selectedNoteId = null;
+    let saveTimer = null;
+    let dbPromise = null;
+    let galleryObjectUrls = [];
+
+    const titleInput = document.getElementById('noteTitle');
+    const contentInput = document.getElementById('noteContent');
+    const searchInput = document.getElementById('notesSearch');
+    const editor = document.getElementById('notesEditorContent');
+    const gallery = document.getElementById('noteImageGallery');
+    const fileInput = document.getElementById('noteImageInput');
+
+    function loadNotes() {
+        try {
+            const saved = JSON.parse(localStorage.getItem(NOTES_STORAGE_KEY) || '[]');
+            return Array.isArray(saved) ? saved : [];
+        } catch (error) {
+            console.error('Notes loading error:', error);
+            return [];
         }
     }
 
-    return [...new Set(links.map(link => link.trim()).filter(Boolean))];
-}
-
-/* GENERATE CLEAN LINKS */
-
-function generateCleanLinks(options = {}) {
-    const input = document.getElementById('linkCleanerInput');
-    const output = document.getElementById('linkCleanerOutput');
-    const status = document.getElementById('linkCleanerStatus');
-
-    if (!input || !output) return;
-
-    const pastedText = input.value.trim();
-    if (!pastedText) return;
-
-    const newLinks = extractCleanLinks(pastedText);
-
-    output.value = newLinks.join('\n');
-
-    if (newLinks.length > 0) {
-        if (status) {
-            status.textContent =
-                newLinks.length +
-                ' new link(s) generated. Click the box to copy.';
-        }
-
-        if (!options.silent) {
-            toast('New clean links generated ✓');
-        }
-    } else {
-        if (status) {
-            status.textContent = 'No valid links found.';
-        }
-
-        if (!options.silent) {
-            toast('No valid links found');
+    function persistNotes() {
+        try {
+            localStorage.setItem(NOTES_STORAGE_KEY, JSON.stringify(notes));
+            return true;
+        } catch (error) {
+            console.error('Notes saving error:', error);
+            showToast('Could not save notes. Your browser storage may be full.');
+            return false;
         }
     }
 
-    input.value = '';
-
-    if (options.focus !== false) {
-        input.focus();
+    function uid() {
+        return Date.now().toString(36) + Math.random().toString(36).slice(2, 9);
     }
-}
 
-/* AUTOMATIC LINK CLEANER */
+    function escapeHTML(value = '') {
+        return String(value).replace(/[&<>"']/g, char => ({
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#39;'
+        })[char]);
+    }
 
-function initializeLinkCleaner() {
-    const input = document.getElementById('linkCleanerInput');
-    const output = document.getElementById('linkCleanerOutput');
+    function formatDate(timestamp) {
+        if (!timestamp) return 'Saved note';
 
-    if (input && input.dataset.autoCleanBound !== 'true') {
-        input.dataset.autoCleanBound = 'true';
-
-        input.addEventListener('paste', () => {
-            setTimeout(() => {
-                if (input.value.trim()) {
-                    generateCleanLinks({
-                        silent: true,
-                        focus: true
-                    });
-                }
-            }, 0);
-        });
-
-        input.addEventListener('input', () => {
-            if (input.dataset.autoCleanTimer) {
-                clearTimeout(Number(input.dataset.autoCleanTimer));
-            }
-
-            const timer = setTimeout(() => {
-                if (input.value.trim()) {
-                    generateCleanLinks({
-                        silent: true,
-                        focus: false
-                    });
-                }
-
-                delete input.dataset.autoCleanTimer;
-            }, 1000);
-
-            input.dataset.autoCleanTimer = String(timer);
+        return new Date(timestamp).toLocaleString([], {
+            month: 'short',
+            day: 'numeric',
+            hour: 'numeric',
+            minute: '2-digit'
         });
     }
 
-    if (output && output.dataset.autoCopyBound !== 'true') {
-        output.dataset.autoCopyBound = 'true';
-
-        output.addEventListener('click', () => {
-            copyCleanLinks();
-        });
-
-        output.style.cursor = 'pointer';
-        output.style.textAlign = 'center';
-        output.title = 'Click to copy all cleaned links';
-    }
-}
-
-/* COPY ALL CLEANED LINKS */
-
-async function copyCleanLinks() {
-    const output = document.getElementById('linkCleanerOutput');
-    const status = document.getElementById('linkCleanerStatus');
-
-    if (!output || !output.value.trim()) {
-        toast('No cleaned links to copy');
-        return;
-    }
-
-    const textToCopy = output.value;
-
-    try {
-        if (navigator.clipboard && window.isSecureContext) {
-            await navigator.clipboard.writeText(textToCopy);
+    function showToast(message) {
+        if (typeof window.toast === 'function') {
+            window.toast(message);
         } else {
-            throw new Error('Clipboard API unavailable');
-        }
-
-        if (status) {
-            status.textContent = 'All cleaned links copied successfully ✓';
-        }
-
-        toast('All cleaned links copied ✓');
-    } catch (error) {
-        output.focus();
-        output.select();
-        output.setSelectionRange(0, output.value.length);
-
-        try {
-            const copied = document.execCommand('copy');
-
-            if (copied) {
-                if (status) {
-                    status.textContent = 'All cleaned links copied successfully ✓';
-                }
-
-                toast('All cleaned links copied ✓');
-            } else {
-                toast('Please copy the links manually');
-            }
-        } catch (fallbackError) {
-            toast('Please copy the links manually');
-        }
-    }
-}
-
-/* CLEAR LINK CLEANER */
-
-function clearLinkCleaner() {
-    const input = document.getElementById('linkCleanerInput');
-    const output = document.getElementById('linkCleanerOutput');
-    const status = document.getElementById('linkCleanerStatus');
-
-    if (input) {
-        input.value = '';
-
-        if (input.dataset.autoCleanTimer) {
-            clearTimeout(Number(input.dataset.autoCleanTimer));
-            delete input.dataset.autoCleanTimer;
+            console.info(message);
         }
     }
 
-    if (output) output.value = '';
-    if (status) status.textContent = 'No links generated yet.';
-
-    if (input) input.focus();
-
-    toast('Link cleaner cleared');
-}
-
-/* WORK CARDS */
-
-function cardHTML(card) {
-    return `
-        <div class="info-card"
-             data-work-card="${escapeHTML(card.id)}"
-             draggable="true">
-
-            <div class="card-title-row">
-                <div class="card-title">
-                    ${escapeHTML(card.title)}
-                </div>
-
-                <span class="tag">
-                    ${escapeHTML(card.category || 'General')}
-                </span>
-            </div>
-
-            <div class="card-content">
-                ${escapeHTML(card.content || '')}
-            </div>
-
-            <div class="card-footer">
-                <button onclick="copyCard('${escapeHTML(card.id)}')">Copy</button>
-                <button onclick="editCard('${escapeHTML(card.id)}')">Edit</button>
-
-                <button class="danger"
-                        onclick="deleteCard('${escapeHTML(card.id)}')">
-                    Delete
-                </button>
-            </div>
-        </div>
-    `;
-}
-
-function renderCards() {
-    const dashboard = document.getElementById('dashboardCards');
-
-    if (dashboard) {
-        dashboard.innerHTML = data.cards
-            .slice(0, 4)
-            .map(cardHTML)
-            .join('') ||
-            '<div class="empty">No saved cards yet.</div>';
+    function setStatus(message) {
+        const status = document.getElementById('notesEditorStatus');
+        if (status) status.textContent = message;
     }
 
-    const page = document.getElementById('page-cards');
-    if (!page || !page.classList.contains('active')) return;
+    function setUpdated(timestamp) {
+        const target = document.getElementById('noteUpdated');
 
-    const search = (
-        document.getElementById('cardSearch')?.value || ''
-    ).toLowerCase();
-
-    const category = document.getElementById('cardCategory')?.value || '';
-
-    const filtered = data.cards.filter(card => {
-        const matchesSearch = (
-            card.title + ' ' + card.content + ' ' + card.category
-        ).toLowerCase().includes(search);
-
-        return matchesSearch &&
-            (!category || card.category === category);
-    });
-
-    const container = document.getElementById('allCards');
-
-    if (container) {
-        container.innerHTML = filtered.length
-            ? filtered.map(cardHTML).join('')
-            : '<div class="empty">No cards found. Create a work card.</div>';
-    }
-
-    const select = document.getElementById('cardCategory');
-
-    if (select) {
-        const oldValue = select.value;
-
-        const categories = [
-            ...new Set(data.cards.map(card => card.category || 'General'))
-        ];
-
-        select.innerHTML =
-            '<option value="">All categories</option>' +
-            categories.map(category =>
-                `<option value="${escapeHTML(category)}">${escapeHTML(category)}</option>`
-            ).join('');
-
-        select.value = categories.includes(oldValue) ? oldValue : '';
-    }
-}
-
-function openCardModal(id = null) {
-    editCardId = id;
-
-    const card = data.cards.find(item => item.id === id) || {
-        title: '',
-        category: 'Notes',
-        content: ''
-    };
-
-    showModal(
-        id ? 'Edit work card' : 'New work card',
-        `
-            <div class="form-grid">
-                <div class="field">
-                    <label>Card title *</label>
-                    <input id="fTitle" value="${escapeHTML(card.title)}" required>
-                </div>
-
-                <div class="field">
-                    <label>Category</label>
-                    <input id="fCat" value="${escapeHTML(card.category || 'Notes')}">
-                </div>
-
-                <div class="field">
-                    <label>Information / notes *</label>
-                    <textarea id="fContent" rows="8">${escapeHTML(card.content || '')}</textarea>
-                </div>
-            </div>
-        `,
-        () => {
-            const title = document.getElementById('fTitle').value.trim();
-            const content = document.getElementById('fContent').value;
-
-            if (!title) {
-                toast('Enter a card title');
-                return;
-            }
-
-            const item = {
-                id: id || uid(),
-                title,
-                category: document.getElementById('fCat').value.trim() || 'General',
-                content,
-                updated: Date.now()
-            };
-
-            if (id) {
-                data.cards = data.cards.map(old =>
-                    old.id === id ? item : old
-                );
-            } else {
-                data.cards.unshift(item);
-            }
-
-            closeModal();
-            saveData();
+        if (target) {
+            target.textContent = 'Last edited: ' + formatDate(timestamp);
         }
-    );
-}
-
-function editCard(id) {
-    openCardModal(id);
-}
-
-function deleteCard(id) {
-    if (!confirm('Delete this work card?')) return;
-
-    data.cards = data.cards.filter(item => item.id !== id);
-    saveData();
-}
-
-async function copyCard(id) {
-    const card = data.cards.find(item => item.id === id);
-    if (!card) return;
-
-    try {
-        await navigator.clipboard.writeText(card.content);
-        toast('Card content copied');
-    } catch {
-        toast('Clipboard unavailable; select and copy manually');
-    }
-}
-/* MY SPIELS */
-
-function renderSpiels() {
-    const grid = document.getElementById('spielsGrid');
-    if (!grid) return;
-
-    grid.innerHTML = data.spiels.length
-        ? data.spiels.map(spiel => `
-            <div class="spiel-card"
-                 data-spiel-card="${escapeHTML(spiel.id)}"
-                 draggable="true"
-                 tabindex="0"
-                 role="button"
-                 aria-label="Copy ${escapeHTML(spiel.title)}">
-
-                <div class="spiel-card-content">
-                    <div class="spiel-title">
-                        ${escapeHTML(spiel.title)}
-                    </div>
-                </div>
-
-                <div class="spiel-actions">
-                    <button
-                        type="button"
-                        class="spiel-edit-btn"
-                        data-edit-spiel="${escapeHTML(spiel.id)}"
-                        title="Edit spiel"
-                        aria-label="Edit ${escapeHTML(spiel.title)}">
-                        ✏️
-                    </button>
-                </div>
-            </div>
-        `).join('')
-        : '<div class="empty">No spiels yet. Add your first spiel.</div>';
-}
-
-function openSpielModal(id = null) {
-    editSpielId = id;
-
-    const spiel = data.spiels.find(item => item.id === id) || {
-        title: '',
-        content: ''
-    };
-
-    const backdrop = document.getElementById('spielModalBackdrop');
-    const modalTitle = document.getElementById('spielModalTitle');
-    const titleInput = document.getElementById('spielTitle');
-    const contentInput = document.getElementById('spielContent');
-
-    if (!backdrop || !modalTitle || !titleInput || !contentInput) {
-        toast('Spiel modal not found. Check your HTML.');
-        return;
     }
 
-    modalTitle.textContent = id ? 'Edit spiel' : 'Add new spiel';
-    titleInput.value = spiel.title || '';
-    contentInput.value = spiel.content || '';
-
-    backdrop.classList.add('show');
-}
-
-function closeSpielModal() {
-    const backdrop = document.getElementById('spielModalBackdrop');
-
-    if (backdrop) {
-        backdrop.classList.remove('show');
+    function updateDeleteButton() {
+        const button = document.getElementById('notesDeleteBtn');
+        if (button) button.disabled = !selectedNoteId;
     }
 
-    editSpielId = null;
-}
+    function showEditor() {
+        const empty = document.getElementById('notesEditorEmpty');
 
-function saveSpiel() {
-    const titleInput = document.getElementById('spielTitle');
-    const contentInput = document.getElementById('spielContent');
-
-    if (!titleInput || !contentInput) return;
-
-    const title = titleInput.value.trim();
-    const content = contentInput.value.trim();
-
-    if (!title || !content) {
-        toast('Please enter a title and spiel message');
-        return;
+        if (empty) empty.hidden = true;
+        if (editor) editor.hidden = false;
     }
 
-    const existingSpiel = editSpielId
-        ? data.spiels.find(item => item.id === editSpielId)
-        : null;
+    function showEmptyEditor() {
+        const empty = document.getElementById('notesEditorEmpty');
 
-    const item = {
-        ...(existingSpiel || {}),
-        id: editSpielId || uid(),
-        title,
-        content
-    };
+        if (empty) empty.hidden = false;
+        if (editor) editor.hidden = true;
 
-    if (editSpielId) {
-        data.spiels = data.spiels.map(old =>
-            old.id === editSpielId ? item : old
+        clearGalleryUrls();
+
+        if (gallery) gallery.innerHTML = '';
+
+        updateAttachmentCount(0);
+    }
+
+    function currentNote() {
+        return notes.find(note => note.id === selectedNoteId) || null;
+    }
+
+    function saveCurrentNote() {
+        if (!selectedNoteId || !titleInput || !contentInput) return;
+
+        const note = currentNote();
+        if (!note) return;
+
+        note.title = titleInput.value.trim() || 'Untitled note';
+        note.content = contentInput.value;
+        note.updated = Date.now();
+
+        if (persistNotes()) {
+            setStatus('Saved');
+            setUpdated(note.updated);
+            renderNotesList();
+        }
+    }
+
+    function scheduleSave() {
+        setStatus('Saving...');
+        clearTimeout(saveTimer);
+        saveTimer = setTimeout(saveCurrentNote, 450);
+    }
+
+    function flushSave() {
+        clearTimeout(saveTimer);
+        saveCurrentNote();
+    }
+
+    function renderNotesList() {
+        const list = document.getElementById('notesList');
+        const count = document.getElementById('notesCount');
+
+        if (!list) return;
+
+        const search = (searchInput?.value || '').trim().toLowerCase();
+
+        const filtered = notes.filter(note =>
+            `${note.title || ''} ${note.content || ''}`.toLowerCase().includes(search)
         );
-    } else {
-        data.spiels.unshift(item);
-    }
 
-    closeSpielModal();
-    saveData();
-}
-
-function editSpiel(id) {
-    openSpielModal(id);
-}
-
-function deleteSpiel(id) {
-    if (!confirm('Delete this spiel?')) return;
-
-    data.spiels = data.spiels.filter(item => item.id !== id);
-    saveData();
-}
-
-async function copySpiel(id) {
-    const spiel = data.spiels.find(item => item.id === id);
-    if (!spiel) return;
-
-    try {
-        await navigator.clipboard.writeText(spiel.content || '');
-        toast('Spiel copied ✓');
-    } catch {
-        toast('Clipboard unavailable. Please copy manually.');
-    }
-}
-
-/* SPIEL CLICK EVENTS */
-
-function initializeSpielEvents() {
-    const grid = document.getElementById('spielsGrid');
-
-    if (grid && grid.dataset.spielClickBound !== 'true') {
-        grid.dataset.spielClickBound = 'true';
-
-        grid.addEventListener('click', event => {
-            const editButton = event.target.closest('[data-edit-spiel]');
-
-            if (editButton) {
-                event.preventDefault();
-                event.stopPropagation();
-                editSpiel(editButton.dataset.editSpiel);
-                return;
-            }
-
-            const card = event.target.closest('[data-spiel-card]');
-
-            if (card) {
-                copySpiel(card.dataset.spielCard);
-            }
-        });
-
-        grid.addEventListener('keydown', event => {
-            if (event.key !== 'Enter' && event.key !== ' ') return;
-            if (event.target.closest('.spiel-actions')) return;
-
-            const card = event.target.closest('[data-spiel-card]');
-
-            if (card) {
-                event.preventDefault();
-                copySpiel(card.dataset.spielCard);
-            }
-        });
-    }
-
-    const backdrop = document.getElementById('spielModalBackdrop');
-
-    if (backdrop && backdrop.dataset.spielModalBound !== 'true') {
-        backdrop.dataset.spielModalBound = 'true';
-
-        backdrop.addEventListener('click', event => {
-            if (event.target === backdrop) {
-                closeSpielModal();
-            }
-        });
-    }
-
-    initializeSpielDragAndDrop();
-}
-
-/* DRAG & DROP FOR CARDS, LINKS AND SPIELS */
-
-function initializeSpielDragAndDrop() {
-    const configurations = [
-        {
-            selectors: ['spielsGrid'],
-            itemSelector: '[data-spiel-card]',
-            collection: 'spiels',
-            attribute: 'spielCard'
-        },
-        {
-            selectors: ['allCards', 'dashboardCards'],
-            itemSelector: '[data-work-card]',
-            collection: 'cards',
-            attribute: 'workCard'
-        },
-        {
-            selectors: ['allLinks', 'dashboardLinks'],
-            itemSelector: '[data-link-card]',
-            collection: 'links',
-            attribute: 'linkCard'
-        }
-    ];
-
-    configurations.forEach(config => {
-        config.selectors.forEach(containerId => {
-            const container = document.getElementById(containerId);
-
-            if (!container || container.dataset.dragInitialized === 'true') {
-                return;
-            }
-
-            container.dataset.dragInitialized = 'true';
-
-            let draggedId = null;
-            let suppressClick = false;
-
-            container.addEventListener('dragstart', event => {
-                const card = event.target.closest(config.itemSelector);
-                if (!card) return;
-
-                draggedId = card.dataset[config.attribute];
-                card.classList.add('dragging');
-                suppressClick = true;
-
-                if (event.dataTransfer) {
-                    event.dataTransfer.effectAllowed = 'move';
-                    event.dataTransfer.setData('text/plain', draggedId);
-                }
-            });
-
-            container.addEventListener('dragover', event => {
-                if (!draggedId) return;
-
-                event.preventDefault();
-
-                const target = event.target.closest(config.itemSelector);
-
-                if (!target || target.dataset[config.attribute] === draggedId) {
-                    return;
-                }
-
-                if (event.dataTransfer) {
-                    event.dataTransfer.dropEffect = 'move';
-                }
-            });
-
-            container.addEventListener('drop', event => {
-                if (!draggedId) return;
-
-                event.preventDefault();
-
-                const target = event.target.closest(config.itemSelector);
-                if (!target) return;
-
-                const targetId = target.dataset[config.attribute];
-                if (targetId === draggedId) return;
-
-                const items = data[config.collection];
-
-                const fromIndex = items.findIndex(item => item.id === draggedId);
-                const toIndex = items.findIndex(item => item.id === targetId);
-
-                if (fromIndex < 0 || toIndex < 0) return;
-
-                const movedItem = items.splice(fromIndex, 1)[0];
-                items.splice(toIndex, 0, movedItem);
-
-                draggedId = null;
-                saveData();
-            });
-
-            container.addEventListener('dragend', () => {
-                container.querySelectorAll('.dragging').forEach(card => {
-                    card.classList.remove('dragging');
-                });
-
-                draggedId = null;
-
-                setTimeout(() => {
-                    suppressClick = false;
-                }, 100);
-            });
-
-            container.addEventListener('click', event => {
-                if (!suppressClick) return;
-
-                event.preventDefault();
-                event.stopPropagation();
-                suppressClick = false;
-            }, true);
-        });
-    });
-}
-
-/* GENERAL MODAL */
-
-function showModal(title, body, onSave) {
-    document.getElementById('modalTitle').textContent = title;
-    document.getElementById('modalBody').innerHTML = body;
-    document.getElementById('modalBackdrop').classList.add('show');
-    document.getElementById('modalSave').onclick = onSave;
-}
-
-function closeModal() {
-    document.getElementById('modalBackdrop').classList.remove('show');
-}
-
-/* SETTINGS */
-
-function saveSettings() {
-    data.settings = {
-        brand: document.getElementById('settingBrand').value.trim() || 'WorkDesk',
-        welcome: document.getElementById('settingWelcome').value.trim() || 'Welcome back.'
-    };
-
-    saveData();
-}
-
-/* RENDER EVERYTHING */
-
-function renderAll() {
-    data.spiels = data.spiels || [];
-
-    const brandName = document.getElementById('brandName');
-    const welcomeTitle = document.getElementById('welcomeTitle');
-    const settingBrand = document.getElementById('settingBrand');
-    const settingWelcome = document.getElementById('settingWelcome');
-
-    if (brandName) {
-        brandName.textContent = data.settings.brand || 'WorkDesk';
-    }
-
-    if (welcomeTitle) {
-        welcomeTitle.textContent = data.settings.welcome || 'Welcome back.';
-    }
-
-    if (settingBrand) {
-        settingBrand.value = data.settings.brand || 'WorkDesk';
-    }
-
-    if (settingWelcome) {
-        settingWelcome.value = data.settings.welcome || '';
-    }
-
-    const linkCount = document.getElementById('linkCount');
-    const cardCount = document.getElementById('cardCount');
-
-    if (linkCount) linkCount.textContent = data.links.length;
-    if (cardCount) cardCount.textContent = data.cards.length;
-
-    renderLinks();
-    renderCards();
-    renderSpiels();
-}
-
-/* EXPORT DATA */
-
-function exportData() {
-    const blob = new Blob(
-        [JSON.stringify(data, null, 2)],
-        { type: 'application/json' }
-    );
-
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = 'workdesk-backup-' +
-        new Date().toISOString().slice(0, 10) + '.json';
-
-    link.click();
-    URL.revokeObjectURL(link.href);
-
-    toast('Backup exported');
-}
-
-/* IMPORT DATA */
-
-function importData(event) {
-    const file = event.target.files[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-
-    reader.onload = () => {
-        try {
-            const imported = JSON.parse(reader.result);
-
-            if (
-                !Array.isArray(imported.links) ||
-                !Array.isArray(imported.cards) ||
-                !imported.settings
-            ) {
-                throw new Error('Invalid backup');
-            }
-
-            imported.spiels = Array.isArray(imported.spiels)
-                ? imported.spiels
-                : [];
-
-            if (confirm('Import this backup? It will replace the current dashboard data.')) {
-                data = imported;
-                saveData();
-                toast('Backup restored');
-            }
-        } catch {
-            alert('Invalid WorkDesk backup file.');
+        if (count) {
+            count.textContent = `${filtered.length} ${filtered.length === 1 ? 'note' : 'notes'}`;
         }
 
-        event.target.value = '';
-    };
-
-    reader.readAsText(file);
-}
-
-/* CLEAR DATA */
-
-function clearData() {
-    if (!confirm('This will permanently remove all dashboard links, cards, and spiels from this browser. Continue?')) {
-        return;
-    }
-
-    data = {
-        settings: {
-            brand: 'WorkDesk',
-            welcome: 'Good day, welcome back.'
-        },
-        links: [],
-        cards: [],
-        spiels: []
-    };
-
-    saveData();
-}
-
-/* STORE ACTIVATION MESSAGE GENERATOR */
-
-function extractShopifyStores(text) {
-    const matches = text.match(/[a-zA-Z0-9][a-zA-Z0-9-]*\.myshopify\.com/gi) || [];
-    return [...new Set(matches.map(store => store.toLowerCase()))];
-}
-
-function generateActivationMessage() {
-    const input = document.getElementById('activationInput');
-    const output = document.getElementById('activationOutput');
-    const status = document.getElementById('activationStatus');
-
-    if (!input || !output) return;
-
-    const stores = extractShopifyStores(input.value);
-
-    if (!stores.length) {
-        output.value = '';
-
-        if (status) status.textContent = 'No Shopify store links found.';
-
-        toast('No Shopify stores found');
-        return;
-    }
-
-    output.value = 'Successfully activated the following stores:\n\n' +
-        stores.map(store => '- ' + store).join('\n');
-
-    if (status) {
-        status.textContent = stores.length + ' store(s) included. Click the message to copy.';
-    }
-
-    toast('Activation message generated ✓');
-}
-
-function clearActivationMessage() {
-    const input = document.getElementById('activationInput');
-    const output = document.getElementById('activationOutput');
-    const status = document.getElementById('activationStatus');
-
-    if (input) input.value = '';
-    if (output) output.value = '';
-    if (status) status.textContent = 'No message generated yet.';
-
-    if (input) input.focus();
-
-    toast('Activation generator cleared');
-}
-
-function initializeActivationGenerator() {
-    const input = document.getElementById('activationInput');
-    const output = document.getElementById('activationOutput');
-    const status = document.getElementById('activationStatus');
-
-    if (!input || !output || output.dataset.copyBound === 'true') return;
-
-    output.dataset.copyBound = 'true';
-
-    output.addEventListener('click', async () => {
-        if (!output.value.trim()) {
-            toast('No activation message to copy');
+        if (!filtered.length) {
+            list.innerHTML = `
+                <div class="notes-list-empty">
+                    ${search
+                        ? 'No notes match your search.'
+                        : 'No notes yet. Click + to create your first note.'}
+                </div>`;
             return;
         }
 
+        list.innerHTML = filtered.map(note => {
+            const preview = (note.content || '').replace(/\s+/g, ' ').trim();
+
+            return `
+                <div class="notes-list-item ${note.id === selectedNoteId ? 'active' : ''}"
+                     data-note-id="${escapeHTML(note.id)}"
+                     tabindex="0"
+                     role="button"
+                     aria-label="Open note ${escapeHTML(note.title || 'Untitled note')}">
+
+                    <div class="notes-list-title">
+                        ${escapeHTML(note.title || 'Untitled note')}
+                    </div>
+
+                    <div class="notes-list-preview">
+                        ${escapeHTML(preview || 'No additional text')}
+                    </div>
+
+                    <div class="notes-list-date">
+                        ${escapeHTML(formatDate(note.updated || note.created))}
+                    </div>
+                </div>`;
+        }).join('');
+    }
+
+    function clearGalleryUrls() {
+        galleryObjectUrls.forEach(url => URL.revokeObjectURL(url));
+        galleryObjectUrls = [];
+    }
+
+    /* INDEXEDDB */
+
+    function openDatabase() {
+        if (!('indexedDB' in window)) {
+            return Promise.reject(
+                new Error('IndexedDB is not supported by this browser.')
+            );
+        }
+
+        if (dbPromise) return dbPromise;
+
+        dbPromise = new Promise((resolve, reject) => {
+            const request = indexedDB.open(DB_NAME, DB_VERSION);
+
+            request.onupgradeneeded = () => {
+                const db = request.result;
+
+                if (!db.objectStoreNames.contains(STORE_NAME)) {
+                    const store = db.createObjectStore(STORE_NAME, {
+                        keyPath: 'id'
+                    });
+
+                    store.createIndex('noteId', 'noteId', {
+                        unique: false
+                    });
+                }
+            };
+
+            request.onsuccess = () => resolve(request.result);
+
+            request.onerror = () => {
+                reject(request.error || new Error('Could not open attachment storage.'));
+            };
+        }).catch(error => {
+            dbPromise = null;
+            throw error;
+        });
+
+        return dbPromise;
+    }
+
+    async function getAttachments(noteId) {
+        const db = await openDatabase();
+
+        return new Promise((resolve, reject) => {
+            const tx = db.transaction(STORE_NAME, 'readonly');
+            const request = tx.objectStore(STORE_NAME)
+                .index('noteId')
+                .getAll(noteId);
+
+            request.onsuccess = () => resolve(request.result || []);
+            request.onerror = () => reject(request.error);
+        });
+    }
+
+    async function saveAttachment(file, noteId) {
+        const db = await openDatabase();
+
+        const record = {
+            id: uid(),
+            noteId,
+            name: file.name || `pasted-image-${Date.now()}.png`,
+            type: file.type || 'application/octet-stream',
+            size: file.size,
+            blob: file,
+            created: Date.now()
+        };
+
+        return new Promise((resolve, reject) => {
+            const tx = db.transaction(STORE_NAME, 'readwrite');
+
+            tx.objectStore(STORE_NAME).put(record);
+
+            tx.oncomplete = () => resolve(record);
+
+            tx.onerror = () => {
+                reject(tx.error || new Error('Could not save attachment.'));
+            };
+
+            tx.onabort = () => {
+                reject(tx.error || new Error('Attachment save was cancelled.'));
+            };
+        });
+    }
+
+    async function removeAttachment(id) {
+        const db = await openDatabase();
+
+        return new Promise((resolve, reject) => {
+            const tx = db.transaction(STORE_NAME, 'readwrite');
+
+            tx.objectStore(STORE_NAME).delete(id);
+
+            tx.oncomplete = resolve;
+            tx.onerror = () => reject(tx.error);
+        });
+    }
+
+    async function removeNoteAttachments(noteId) {
+        const records = await getAttachments(noteId);
+
+        if (!records.length) return;
+
+        const db = await openDatabase();
+
+        return new Promise((resolve, reject) => {
+            const tx = db.transaction(STORE_NAME, 'readwrite');
+            const store = tx.objectStore(STORE_NAME);
+
+            records.forEach(record => store.delete(record.id));
+
+            tx.oncomplete = resolve;
+            tx.onerror = () => reject(tx.error);
+        });
+    }
+
+    function updateAttachmentCount(count) {
+        const target = document.getElementById('noteImageCount');
+
+        if (target) {
+            target.textContent = `${count} ${count === 1 ? 'file' : 'files'}`;
+        }
+    }
+
+    function fileIcon(type, name) {
+        if (type.includes('pdf') || /\.pdf$/i.test(name)) return '📕';
+        if (type.includes('word') || /\.(doc|docx)$/i.test(name)) return '📘';
+        if (type.includes('sheet') || /\.(xls|xlsx|csv)$/i.test(name)) return '📗';
+        if (type.startsWith('text/') || /\.(txt|md)$/i.test(name)) return '📄';
+
+        return '📎';
+    }
+
+    /* RENDER ATTACHMENTS */
+
+    async function renderAttachments() {
+        if (!gallery || !selectedNoteId) return;
+
+        const noteId = selectedNoteId;
+
+        clearGalleryUrls();
+
+        gallery.innerHTML = `
+            <div class="notes-attachments-loading">
+                Loading attachments...
+            </div>`;
+
         try {
-            if (!navigator.clipboard || !window.isSecureContext) {
-                throw new Error('Clipboard unavailable');
+            const records = await getAttachments(noteId);
+
+            if (selectedNoteId !== noteId) return;
+
+            updateAttachmentCount(records.length);
+
+            if (!records.length) {
+                gallery.innerHTML = `
+                    <div class="notes-attachments-empty">
+                        No files attached yet.
+                    </div>`;
+                return;
             }
 
-            await navigator.clipboard.writeText(output.value);
+            gallery.innerHTML = records.map(record => {
+                const url = URL.createObjectURL(record.blob);
+                galleryObjectUrls.push(url);
 
-            if (status) {
-                status.textContent = 'Activation message copied successfully ✓';
-            }
+                const isImage = (record.type || '').startsWith('image/');
+                const safeName = escapeHTML(record.name);
+                const size = formatBytes(record.size);
 
-            toast('Activation message copied ✓');
+                return `
+                    <article class="notes-image-card">
+                        ${isImage
+                            ? `
+                                <img
+                                    src="${url}"
+                                    alt="${safeName}"
+                                    data-open-attachment="${escapeHTML(record.id)}"
+                                    title="Click to open image">
+                            `
+                            : `
+                                <a
+                                    class="notes-file-preview"
+                                    href="${url}"
+                                    download="${safeName}">
+
+                                    <span class="notes-file-icon">
+                                        ${fileIcon(record.type || '', record.name)}
+                                    </span>
+
+                                    <span class="notes-file-label">
+                                        ${safeName}
+                                    </span>
+
+                                    <span class="notes-file-size">
+                                        ${size}
+                                    </span>
+                                </a>
+                            `
+                        }
+
+                        <button
+                            type="button"
+                            class="notes-image-delete"
+                            data-delete-attachment="${escapeHTML(record.id)}"
+                            aria-label="Remove ${safeName}"
+                            title="Remove attachment">
+                            ×
+                        </button>
+
+                        ${isImage
+                            ? `<div class="notes-image-name">${safeName}</div>`
+                            : ''
+                        }
+                    </article>`;
+            }).join('');
+
         } catch (error) {
-            output.focus();
-            output.select();
+            console.error('Attachment loading error:', error);
+
+            gallery.innerHTML = `
+                <div class="notes-attachments-empty">
+                    Could not load attachments. Try refreshing the page.
+                </div>`;
+        }
+    }
+
+    function formatBytes(bytes = 0) {
+        if (bytes < 1024) return `${bytes} B`;
+        if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+
+        return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+    }
+
+    function ensureSelectedNote() {
+        if (selectedNoteId) return true;
+
+        createNote();
+        return Boolean(selectedNoteId);
+    }
+
+    /* ADD FILES */
+
+    async function addFiles(fileList) {
+        const files = Array.from(fileList || [])
+            .filter(file => file && typeof file.size === 'number');
+
+        if (!files.length) return;
+        if (!ensureSelectedNote()) return;
+
+        const noteId = selectedNoteId;
+
+        let added = 0;
+        let skipped = 0;
+
+        for (const file of files) {
+            if (file.size > MAX_FILE_SIZE) {
+                skipped++;
+                continue;
+            }
 
             try {
-                if (document.execCommand('copy')) {
-                    if (status) {
-                        status.textContent = 'Activation message copied successfully ✓';
-                    }
-
-                    toast('Activation message copied ✓');
-                } else {
-                    toast('Please copy the message manually');
-                }
-            } catch (fallbackError) {
-                toast('Please copy the message manually');
+                await saveAttachment(file, noteId);
+                added++;
+            } catch (error) {
+                console.error('Attachment save error:', error);
+                skipped++;
             }
         }
-    });
 
-    input.addEventListener('paste', () => {
-        setTimeout(generateActivationMessage, 0);
-    });
+        if (selectedNoteId === noteId) {
+            await renderAttachments();
+        }
 
-    input.addEventListener('input', () => {
-        clearTimeout(Number(input.dataset.activationTimer || 0));
+        if (added && skipped) {
+            showToast(`${added} file(s) attached. ${skipped} skipped (over 25 MB or could not be saved).`);
+        } else if (added) {
+            showToast(`${added} file(s) attached`);
+        } else if (skipped) {
+            showToast('Files could not be attached. Each file must be under 25 MB.');
+        }
+    }
 
-        input.dataset.activationTimer = String(setTimeout(() => {
-            if (input.value.trim()) generateActivationMessage();
-            delete input.dataset.activationTimer;
-        }, 700));
-    });
-}
+    /* INSERT DRAGGED TEXT */
 
-/* INITIALIZE */
+    function insertTextAtCursor(text) {
+        if (!contentInput || !text) return;
 
-initializeSpielEvents();
-initializeLinkCleaner();
-initializeActivationGenerator();
-renderAll();
+        const start = contentInput.selectionStart ?? contentInput.value.length;
+        const end = contentInput.selectionEnd ?? contentInput.value.length;
+
+        const before = contentInput.value.slice(0, start);
+        const after = contentInput.value.slice(end);
+
+        const needsNewline = before.length && !before.endsWith('\n') ? '\n' : '';
+
+        contentInput.value = before + needsNewline + text + after;
+
+        const cursor = (before + needsNewline + text).length;
+
+        contentInput.setSelectionRange(cursor, cursor);
+        contentInput.focus();
+
+        scheduleSave();
+    }
+
+    /* NOTE ACTIONS */
+
+    function selectNote(id) {
+        if (selectedNoteId === id) return;
+
+        flushSave();
+
+        const note = notes.find(item => item.id === id);
+        if (!note) return;
+
+        selectedNoteId = id;
+
+        showEditor();
+
+        titleInput.value = note.title || '';
+        contentInput.value = note.content || '';
+
+        setStatus('Saved');
+        setUpdated(note.updated || note.created);
+
+        renderNotesList();
+        updateDeleteButton();
+        renderAttachments();
+    }
+
+    function createNote() {
+        flushSave();
+
+        const now = Date.now();
+
+        const note = {
+            id: uid(),
+            title: '',
+            content: '',
+            created: now,
+            updated: now
+        };
+
+        notes.unshift(note);
+        selectedNoteId = note.id;
+
+        persistNotes();
+
+        showEditor();
+
+        titleInput.value = '';
+        contentInput.value = '';
+
+        setStatus('New note');
+        setUpdated(now);
+
+        renderNotesList();
+        updateDeleteButton();
+        renderAttachments();
+
+        titleInput.focus();
+    }
+
+    async function deleteNote() {
+        if (!selectedNoteId) return;
+
+        const note = currentNote();
+        if (!note) return;
+
+        if (!confirm(`Delete "${note.title || 'Untitled note'}" and its attachments?`)) {
+            return;
+        }
+
+        clearTimeout(saveTimer);
+
+        const deletedId = selectedNoteId;
+
+        notes = notes.filter(item => item.id !== deletedId);
+        selectedNoteId = null;
+
+        persistNotes();
+
+        try {
+            await removeNoteAttachments(deletedId);
+        } catch (error) {
+            console.error('Could not remove note attachments:', error);
+        }
+
+        if (notes.length) {
+            const next = notes[0];
+
+            selectedNoteId = next.id;
+
+            showEditor();
+
+            titleInput.value = next.title || '';
+            contentInput.value = next.content || '';
+
+            setStatus('Saved');
+            setUpdated(next.updated || next.created);
+
+            renderAttachments();
+        } else {
+            titleInput.value = '';
+            contentInput.value = '';
+
+            showEmptyEditor();
+        }
+
+        renderNotesList();
+        updateDeleteButton();
+
+        showToast('Note deleted');
+    }
+
+    /* EDITOR EVENTS */
+
+    function bindEditor() {
+        titleInput?.addEventListener('input', scheduleSave);
+        contentInput?.addEventListener('input', scheduleSave);
+
+        [titleInput, contentInput].forEach(input => {
+            input?.addEventListener('blur', flushSave);
+        });
+
+        document.querySelectorAll('.nav button').forEach(button => {
+            button.addEventListener('click', flushSave);
+        });
+
+        window.addEventListener('beforeunload', flushSave);
+
+        document.getElementById('attachImageBtn')?.addEventListener('click', () => {
+            fileInput?.click();
+        });
+
+        fileInput?.addEventListener('change', async event => {
+            await addFiles(event.target.files);
+            event.target.value = '';
+        });
+
+        /* PASTE SCREENSHOTS */
+
+        contentInput?.addEventListener('paste', async event => {
+            const items = Array.from(event.clipboardData?.items || []);
+
+            const imageFiles = items
+                .filter(item =>
+                    item.kind === 'file' && item.type.startsWith('image/')
+                )
+                .map(item => item.getAsFile())
+                .filter(Boolean);
+
+            if (imageFiles.length) {
+                event.preventDefault();
+                await addFiles(imageFiles);
+            }
+
+            // Plain text continues to paste normally into the textarea.
+        });
+
+        /* DRAG AND DROP */
+
+        editor?.addEventListener('dragover', event => {
+            event.preventDefault();
+
+            editor.classList.add('drag-over');
+
+            if (event.dataTransfer) {
+                event.dataTransfer.dropEffect = 'copy';
+            }
+        });
+
+        editor?.addEventListener('dragleave', event => {
+            if (!editor.contains(event.relatedTarget)) {
+                editor.classList.remove('drag-over');
+            }
+        });
+
+        editor?.addEventListener('drop', async event => {
+            event.preventDefault();
+
+            editor.classList.remove('drag-over');
+
+            const files = Array.from(event.dataTransfer?.files || []);
+
+            if (files.length) {
+                await addFiles(files);
+                return;
+            }
+
+            const text = event.dataTransfer?.getData('text/plain');
+
+            if (text) {
+                insertTextAtCursor(text);
+            }
+        });
+
+        editor?.addEventListener('dragend', () => {
+            editor.classList.remove('drag-over');
+        });
+    }
+
+    /* SEARCH, LIST AND GALLERY EVENTS */
+
+    function bindSearchAndList() {
+        searchInput?.addEventListener('input', renderNotesList);
+
+        const list = document.getElementById('notesList');
+        if (!list) return;
+
+        list.addEventListener('click', event => {
+            const removeButton = event.target.closest('[data-delete-attachment]');
+
+            if (removeButton) return;
+
+            const item = event.target.closest('[data-note-id]');
+
+            if (item) {
+                selectNote(item.dataset.noteId);
+            }
+        });
+
+        list.addEventListener('keydown', event => {
+            if (event.key !== 'Enter' && event.key !== ' ') return;
+
+            const item = event.target.closest('[data-note-id]');
+            if (!item) return;
+
+            event.preventDefault();
+            selectNote(item.dataset.noteId);
+        });
+
+        gallery?.addEventListener('click', async event => {
+            const deleteButton = event.target.closest('[data-delete-attachment]');
+
+            if (deleteButton) {
+                event.preventDefault();
+
+                try {
+                    await removeAttachment(deleteButton.dataset.deleteAttachment);
+                    await renderAttachments();
+                    showToast('Attachment removed');
+                } catch (error) {
+                    console.error(error);
+                    showToast('Could not remove attachment');
+                }
+
+                return;
+            }
+
+            const image = event.target.closest('[data-open-attachment]');
+
+            if (image) {
+                const recordId = image.dataset.openAttachment;
+
+                try {
+                    const records = await getAttachments(selectedNoteId);
+                    const record = records.find(item => item.id === recordId);
+
+                    if (record) {
+                        const url = URL.createObjectURL(record.blob);
+
+                        window.open(url, '_blank', 'noopener');
+
+                        setTimeout(() => {
+                            URL.revokeObjectURL(url);
+                        }, 60000);
+                    }
+                } catch (error) {
+                    console.error(error);
+                    showToast('Could not open image');
+                }
+            }
+        });
+    }
+
+    /* RENDER NOTES */
+
+    function renderNotes() {
+        if (!selectedNoteId && notes.length) {
+            selectedNoteId = notes[0].id;
+        }
+
+        const note = currentNote();
+
+        if (note) {
+            showEditor();
+
+            titleInput.value = note.title || '';
+            contentInput.value = note.content || '';
+
+            setStatus('Saved');
+            setUpdated(note.updated || note.created);
+
+            renderAttachments();
+        } else {
+            selectedNoteId = null;
+
+            titleInput.value = '';
+            contentInput.value = '';
+
+            showEmptyEditor();
+        }
+
+        renderNotesList();
+        updateDeleteButton();
+    }
+
+    /* INITIALIZE */
+
+    function init() {
+        if (!titleInput || !contentInput) {
+            console.warn('WorkDesk Notes: noteTitle or noteContent was not found in index.html.');
+            return;
+        }
+
+        bindEditor();
+        bindSearchAndList();
+        renderNotes();
+    }
+
+    window.createNote = createNote;
+    window.deleteNote = deleteNote;
+    window.renderNotes = renderNotes;
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init, {
+            once: true
+        });
+    } else {
+        init();
+    }
+})();
